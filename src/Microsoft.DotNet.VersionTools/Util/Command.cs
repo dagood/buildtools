@@ -67,20 +67,6 @@ namespace Microsoft.DotNet.VersionTools.Util
 
         private static void ResolveExecutablePath(ref string executable, ref string args)
         {
-            foreach (string suffix in RunnableSuffixes)
-            {
-                var fullExecutable = Path.GetFullPath(Path.Combine(
-                                        AppContext.BaseDirectory, executable + suffix));
-
-                if (File.Exists(fullExecutable))
-                {
-                    executable = fullExecutable;
-
-                    // In priority order we've found the best runnable extension, so break.
-                    break;
-                }
-            }
-
             // On Windows, we want to avoid using "cmd" if possible (it mangles the colors, and a bunch of other things)
             // So, do a quick path search to see if we can just directly invoke it
             var useCmd = ShouldUseCmd(executable);
@@ -140,26 +126,6 @@ namespace Microsoft.DotNet.VersionTools.Util
             return false;
         }
 
-        public Command Environment(IDictionary<string, string> env)
-        {
-            if (env == null)
-            {
-                return this;
-            }
-
-            foreach (var item in env)
-            {
-                _process.StartInfo.Environment[item.Key] = item.Value;
-            }
-            return this;
-        }
-
-        public Command Environment(string key, string value)
-        {
-            _process.StartInfo.Environment[key] = value;
-            return this;
-        }
-
         public Command QuietBuildReporter()
         {
             _quietBuildReporter = true;
@@ -188,6 +154,13 @@ namespace Microsoft.DotNet.VersionTools.Util
             }
 
             _process.EnableRaisingEvents = true;
+
+            if (_process.StartInfo.RedirectStandardOutput ||
+                _process.StartInfo.RedirectStandardInput ||
+                _process.StartInfo.RedirectStandardError)
+            {
+                _process.StartInfo.UseShellExecute = false;
+            }
 
             var sw = Stopwatch.StartNew();
             ReportExecBegin();
@@ -220,12 +193,6 @@ namespace Microsoft.DotNet.VersionTools.Util
         public Command WorkingDirectory(string projectDirectory)
         {
             _process.StartInfo.WorkingDirectory = projectDirectory;
-            return this;
-        }
-
-        public Command EnvironmentVariable(string name, string value)
-        {
-            _process.StartInfo.Environment[name] = value;
             return this;
         }
 
@@ -329,7 +296,7 @@ namespace Microsoft.DotNet.VersionTools.Util
 
         private void ReportExecBegin()
         {
-            if (!_quietBuildReporter)
+            if (!_quietBuildReporter && _statusForward != null)
             {
                 _statusForward($"[EXEC Begin] {FormatProcessInfo(_process.StartInfo, includeWorkingDirectory: false)}");
             }
@@ -337,7 +304,7 @@ namespace Microsoft.DotNet.VersionTools.Util
 
         private void ReportExecEnd(int exitCode)
         {
-            if (!_quietBuildReporter)
+            if (!_quietBuildReporter && _statusForward != null)
             {
                 bool success = exitCode == 0;
 

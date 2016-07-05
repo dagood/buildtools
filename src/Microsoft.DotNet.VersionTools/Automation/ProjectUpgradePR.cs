@@ -109,9 +109,11 @@ namespace Microsoft.DotNet.VersionTools.Automation
 
         private void PushNewCommit(string commitMessage, string remoteBranchName)
         {
+            // Set committer in process rather than through command start options because net45 doesn't have environment options.
+            Environment.SetEnvironmentVariable("GIT_COMMITTER_NAME", _gitAuthorName);
+            Environment.SetEnvironmentVariable("GIT_COMMITTER_EMAIL", _gitHubAuth.Email);
+
             Git("commit", "-a", "-m", commitMessage, "--author", $"{_gitAuthorName} <{_gitHubAuth.Email}>")
-                .EnvironmentVariable("GIT_COMMITTER_NAME", _gitAuthorName)
-                .EnvironmentVariable("GIT_COMMITTER_EMAIL", _gitHubAuth.Email)
                 .Execute()
                 .EnsureSuccessful();
 
