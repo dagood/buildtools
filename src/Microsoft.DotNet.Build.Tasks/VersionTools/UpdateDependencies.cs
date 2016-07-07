@@ -56,7 +56,7 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
                 GitHubAuthor ?? GitHubUser,
                 NotifyGitHubUsers?.Select(item => item.ItemSpec));
 
-            updater.CreateAndSubmitAsync(updaters, buildInfos).Wait();
+            updater.UpdateAndSubmitPullRequestAsync(updaters, buildInfos).Wait();
 
             Trace.Listeners.RemoveMsBuildTraceListeners(listeners);
 

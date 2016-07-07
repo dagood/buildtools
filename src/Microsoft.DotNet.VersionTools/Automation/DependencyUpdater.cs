@@ -49,7 +49,11 @@ namespace Microsoft.DotNet.VersionTools.Automation
             _notifyGitHubUsers = notifyGitHubUsers;
         }
 
-        public async Task CreateAndSubmitAsync(
+        /// <summary>
+        /// Runs the updaters given using buildInfo sources, and returns the build infos used
+        /// during the update. The returned enumerable has no duplicate entries.
+        /// </summary>
+        public IEnumerable<BuildInfo> Update(
             IEnumerable<IDependencyUpdater> updaters,
             IEnumerable<BuildInfo> buildInfos)
         {
@@ -60,7 +64,15 @@ namespace Microsoft.DotNet.VersionTools.Automation
                 IEnumerable<BuildInfo> newUsedBuildInfos = updater.Update(buildInfos);
                 usedBuildInfos = usedBuildInfos.Union(newUsedBuildInfos);
             }
-            usedBuildInfos = usedBuildInfos.ToArray();
+
+            return usedBuildInfos.ToArray();
+        }
+
+        public async Task UpdateAndSubmitPullRequestAsync(
+            IEnumerable<IDependencyUpdater> updaters,
+            IEnumerable<BuildInfo> buildInfos)
+        {
+            IEnumerable<BuildInfo> usedBuildInfos = Update(updaters, buildInfos);
 
             string commitMessage = CommitMessageOverride;
             if (string.IsNullOrWhiteSpace(commitMessage))
