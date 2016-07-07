@@ -12,17 +12,21 @@ namespace Microsoft.DotNet.VersionTools.Upgrade
     {
         public string BuildInfoName { get; set; }
 
-        protected override string GetDesiredValue(IEnumerable<BuildInfo> buildInfos)
+        protected override string TryGetDesiredValue(
+            IEnumerable<BuildInfo> buildInfos,
+            out IEnumerable<BuildInfo> usedBuildInfos)
         {
             BuildInfo project = buildInfos.SingleOrDefault(d => d.Name == BuildInfoName);
 
             if (project == null)
             {
+                usedBuildInfos = Enumerable.Empty<BuildInfo>();
+
                 Trace.TraceError($"Could not find build info for project named {BuildInfoName}");
                 return $"PROJECT '{BuildInfoName}' NOT FOUND";
             }
 
-            BuildInfosUsed.Add(project);
+            usedBuildInfos = new[] { project };
 
             return project.LatestReleaseVersion;
         }

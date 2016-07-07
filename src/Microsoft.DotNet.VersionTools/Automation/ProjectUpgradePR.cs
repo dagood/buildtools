@@ -57,8 +57,8 @@ namespace Microsoft.DotNet.VersionTools.Automation
 
             foreach (IDependencyUpgrader upgrader in upgraders)
             {
-                upgrader.Upgrade(buildInfos);
-                usedBuildInfos = usedBuildInfos.Union(upgrader.BuildInfosUsed);
+                IEnumerable<BuildInfo> newUsedBuildInfos = upgrader.Upgrade(buildInfos);
+                usedBuildInfos = usedBuildInfos.Union(newUsedBuildInfos);
             }
             usedBuildInfos = usedBuildInfos.ToArray();
 

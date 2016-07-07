@@ -15,10 +15,6 @@ namespace Microsoft.DotNet.VersionTools.Upgrade
 {
     public class ProjectJsonUpgrader : IDependencyUpgrader
     {
-        private List<BuildInfo> _buildInfosUsed = new List<BuildInfo>();
-
-        public IEnumerable<BuildInfo> BuildInfosUsed => _buildInfosUsed;
-
         public IEnumerable<string> ProjectJsonPaths { get; }
 
         public bool SkipStableVersions { get; set; } = true;
@@ -28,7 +24,7 @@ namespace Microsoft.DotNet.VersionTools.Upgrade
             ProjectJsonPaths = projectJsonPaths;
         }
 
-        public void Upgrade(IEnumerable<BuildInfo> buildInfos)
+        public IEnumerable<BuildInfo> Upgrade(IEnumerable<BuildInfo> buildInfos)
         {
             foreach (string projectJsonFile in ProjectJsonPaths)
             {
@@ -49,15 +45,20 @@ namespace Microsoft.DotNet.VersionTools.Upgrade
                     continue;
                 }
 
-                bool changedAnyDependency = FindAllDependencyProperties(projectRoot)
+                BuildInfo[] buildInfosUsed = FindAllDependencyProperties(projectRoot)
                     .Select(dependencyProperty => ReplaceDependencyVersion(projectJsonFile, dependencyProperty, buildInfos))
-                    .ToArray()
-                    .Any(shouldWrite => shouldWrite);
+                    .Where(buildInfo => buildInfo != null)
+                    .ToArray();
 
-                if (changedAnyDependency)
+                if (buildInfosUsed.Any())
                 {
                     Trace.TraceInformation($"Writing changes to {projectJsonFile}");
                     WriteProject(projectRoot, projectJsonFile);
+
+                    foreach (var buildInfo in buildInfosUsed)
+                    {
+                        yield return buildInfo;
+                    }
                 }
             }
         }
@@ -66,7 +67,8 @@ namespace Microsoft.DotNet.VersionTools.Upgrade
         /// Replaces the single dependency with the updated version, if it matches any of the
         /// dependencies that need to be updated. Stops on the first upgraded value found.
         /// </summary>
-        private bool ReplaceDependencyVersion(
+        /// <returns>The BuildInfo used to change the value, or null if there was no change.</returns>
+        private BuildInfo ReplaceDependencyVersion(
             string projectJsonFile,
             JProperty dependencyProperty,
             IEnumerable<BuildInfo> buildInfos)
@@ -115,15 +117,11 @@ namespace Microsoft.DotNet.VersionTools.Upgrade
                             dependencyProperty.Value = newVersion;
                         }
 
-                        // mark the BuildInfo as used so we can tell which dependencies were used for this upgrade.
-                        _buildInfosUsed.Add(buildInfo);
-
-                        return true;
+                        return buildInfo;
                     }
                 }
             }
-
-            return false;
+            return null;
         }
 
         private static JObject ReadProject(string projectJsonPath)

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -13,35 +14,31 @@ namespace Microsoft.DotNet.VersionTools.Upgrade
 {
     public abstract class FileRegexUpgrader : IDependencyUpgrader
     {
-        protected List<BuildInfo> BuildInfosUsed = new List<BuildInfo>();
-
-        IEnumerable<BuildInfo> IDependencyUpgrader.BuildInfosUsed => BuildInfosUsed;
-
         public string Path { get; set; }
         public Regex Regex { get; set; }
         public string VersionGroupName { get; set; }
 
-        public void Upgrade(IEnumerable<BuildInfo> buildInfos)
+        public IEnumerable<BuildInfo> Upgrade(IEnumerable<BuildInfo> buildInfos)
         {
-            ReplaceFileContents(
-                Path,
-                contents => ReplaceDependencyVersion(buildInfos, contents));
-        }
-
-        protected abstract string GetDesiredValue(IEnumerable<BuildInfo> buildInfos);
-
-        private string ReplaceDependencyVersion(IEnumerable<BuildInfo> buildInfos, string contents)
-        {
-            string newValue = GetDesiredValue(buildInfos);
+            IEnumerable<BuildInfo> usedBuildInfos;
+            string newValue = TryGetDesiredValue(buildInfos, out usedBuildInfos);
 
             if (newValue == null)
             {
                 Trace.TraceError($"Could not find version information to change '{Path}' with '{Regex}'");
-                return contents;
+                return Enumerable.Empty<BuildInfo>();
             }
 
-            return ReplaceGroupValue(Regex, contents, VersionGroupName, newValue);
+            ReplaceFileContents(
+                Path,
+                contents => ReplaceGroupValue(Regex, contents, VersionGroupName, newValue));
+
+            return usedBuildInfos;
         }
+
+        protected abstract string TryGetDesiredValue(
+            IEnumerable<BuildInfo> buildInfos,
+            out IEnumerable<BuildInfo> usedBuildInfos);
 
         private static string ReplaceGroupValue(Regex regex, string input, string groupName, string newValue)
         {

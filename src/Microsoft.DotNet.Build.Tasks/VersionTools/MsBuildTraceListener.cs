@@ -56,6 +56,15 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
             }
         }
 
+        public override void Flush()
+        {
+            base.Flush();
+            if (_partialLine.Length > 0)
+            {
+                WriteLine(string.Empty);
+            }
+        }
+
         private class TraceEventTypeFilter : TraceFilter
         {
             public TraceEventType ShouldTraceType { get; set; }

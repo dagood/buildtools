@@ -12,7 +12,9 @@ namespace Microsoft.DotNet.VersionTools.Upgrade
     {
         public string PackageId { get; set; }
 
-        protected override string GetDesiredValue(IEnumerable<BuildInfo> buildInfos)
+        protected override string TryGetDesiredValue(
+            IEnumerable<BuildInfo> buildInfos,
+            out IEnumerable<BuildInfo> usedBuildInfos)
         {
             var newVersion = buildInfos
                 .SelectMany(d => d.LatestPackages.Select(p => new
@@ -24,11 +26,13 @@ namespace Microsoft.DotNet.VersionTools.Upgrade
 
             if (newVersion == null)
             {
+                usedBuildInfos = Enumerable.Empty<BuildInfo>();
+
                 Trace.TraceError($"Could not find package version information for '{PackageId}'");
                 return $"DEPENDENCY '{PackageId}' NOT FOUND";
             }
 
-            BuildInfosUsed.Add(newVersion.BuildInfo);
+            usedBuildInfos = new[] { newVersion.BuildInfo };
 
             return newVersion.Package.Version.ToNormalizedString();
         }

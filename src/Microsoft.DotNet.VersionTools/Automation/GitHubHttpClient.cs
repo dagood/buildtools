@@ -24,7 +24,7 @@ namespace Microsoft.DotNet.VersionTools.Automation
             _auth = auth;
         }
 
-        public async Task<HttpResponseMessage> PutGitHubFileAsync(
+        public async Task PutGitHubFileAsync(
             string fileUrl,
             string commitMessage,
             string newFileContents)
@@ -56,12 +56,10 @@ namespace Microsoft.DotNet.VersionTools.Automation
             {
                 response.EnsureSuccessStatusCode();
                 Trace.TraceInformation("Updated the file successfully.");
-
-                return response;
             }
         }
 
-        public async Task<HttpResponseMessage> PostGitHubPullRequestAsync(
+        public async Task PostGitHubPullRequestAsync(
             string title,
             string description,
             string originOwner,
@@ -91,8 +89,6 @@ namespace Microsoft.DotNet.VersionTools.Automation
                 string htmlUrl = responseContent["html_url"].ToString();
 
                 Trace.TraceInformation($"Pull request page link: {htmlUrl}");
-
-                return response;
             }
         }
 

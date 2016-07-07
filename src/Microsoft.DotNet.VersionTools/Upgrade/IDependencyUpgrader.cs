@@ -11,11 +11,9 @@ namespace Microsoft.DotNet.VersionTools.Upgrade
     /// </summary>
     public interface IDependencyUpgrader
     {
-        void Upgrade(IEnumerable<BuildInfo> buildInfos);
-
         /// <summary>
-        /// Which build infos were used during Upgrade. Used for informational purposes.
+        /// Upgrades based on the given build infos and returns build infos used during upgrade.
         /// </summary>
-        IEnumerable<BuildInfo> BuildInfosUsed { get; }
+        IEnumerable<BuildInfo> Upgrade(IEnumerable<BuildInfo> buildInfos);
     }
 }
