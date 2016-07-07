@@ -6,9 +6,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-namespace Microsoft.DotNet.VersionTools.Upgrade
+namespace Microsoft.DotNet.VersionTools.Dependencies
 {
-    public class FileRegexReleaseUpgrader : FileRegexUpgrader
+    public class FileRegexReleaseUpdater : FileRegexUpdater
     {
         public string BuildInfoName { get; set; }
 

@@ -6,22 +6,22 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Microsoft.DotNet.VersionTools;
 using Microsoft.DotNet.VersionTools.Automation;
-using Microsoft.DotNet.VersionTools.Upgrade;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.DotNet.VersionTools.Dependencies;
 
 namespace Microsoft.DotNet.Build.Tasks.VersionTools
 {
-    public class UpgradeProjectDependencies : Task
+    public class UpdateDependencies : Task
     {
         [Required]
         public ITaskItem[] DependencyBuildInfo { get; set; }
 
         public ITaskItem[] ProjectJsonFiles { get; set; }
 
-        public ITaskItem[] XmlUpgradeStep { get; set; }
+        public ITaskItem[] XmlUpdateStep { get; set; }
 
         public string ProjectRepo { get; set; }
         public string ProjectRepoOwner { get; set; }
@@ -33,7 +33,7 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
         public string GitHubEmail { get; set; }
 
         /// <summary>
-        /// The git author of the upgrade commit. Defaults to the same as GitHubUser.
+        /// The git author of the update commit. Defaults to the same as GitHubUser.
         /// </summary>
         public string GitHubAuthor { get; set; }
 
@@ -43,12 +43,12 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
         {
             MsBuildTraceListener[] listeners = Trace.Listeners.AddMsBuildTraceListeners(Log);
 
-            IDependencyUpgrader[] upgraders = GetDependencyUpgraders().ToArray();
+            IDependencyUpdater[] updaters = GetDependencyUpdaters().ToArray();
             BuildInfo[] buildInfos = GetBuildInfos().ToArray();
 
             var gitHubAuth = new GitHubAuth(GitHubAuthToken, GitHubUser, GitHubEmail);
 
-            var upgradePr = new ProjectUpgradePr(
+            var updater = new DependencyUpdater(
                 gitHubAuth,
                 ProjectRepo,
                 ProjectRepoOwner,
@@ -56,25 +56,25 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
                 GitHubAuthor ?? GitHubUser,
                 NotifyGitHubUsers?.Select(item => item.ItemSpec));
 
-            upgradePr.CreateAndSubmitAsync(upgraders, buildInfos).Wait();
+            updater.CreateAndSubmitAsync(updaters, buildInfos).Wait();
 
             Trace.Listeners.RemoveMsBuildTraceListeners(listeners);
 
             return true;
         }
 
-        private IEnumerable<IDependencyUpgrader> GetDependencyUpgraders()
+        private IEnumerable<IDependencyUpdater> GetDependencyUpdaters()
         {
             if (ProjectJsonFiles?.Any() ?? false)
             {
-                yield return new ProjectJsonUpgrader(ProjectJsonFiles.Select(item => item.ItemSpec));
+                yield return new ProjectJsonUpdater(ProjectJsonFiles.Select(item => item.ItemSpec));
             }
 
-            if (XmlUpgradeStep != null)
+            if (XmlUpdateStep != null)
             {
-                foreach (ITaskItem step in XmlUpgradeStep)
+                foreach (ITaskItem step in XmlUpdateStep)
                 {
-                    yield return new FileRegexReleaseUpgrader
+                    yield return new FileRegexReleaseUpdater
                     {
                         Path = step.GetMetadata("Path"),
                         Regex = new Regex($@"<{step.GetMetadata("ElementName")}>(?<version>.*)<"),

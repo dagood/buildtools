@@ -4,16 +4,16 @@
 
 using System.Collections.Generic;
 
-namespace Microsoft.DotNet.VersionTools.Upgrade
+namespace Microsoft.DotNet.VersionTools.Dependencies
 {
     /// <summary>
-    /// A tool that uses buildInfos to perform an upgrade.
+    /// A tool that uses buildInfos to perform an update.
     /// </summary>
-    public interface IDependencyUpgrader
+    public interface IDependencyUpdater
     {
         /// <summary>
-        /// Upgrades based on the given build infos and returns build infos used during upgrade.
+        /// Updates based on the given build infos and returns build infos used during update.
         /// </summary>
-        IEnumerable<BuildInfo> Upgrade(IEnumerable<BuildInfo> buildInfos);
+        IEnumerable<BuildInfo> Update(IEnumerable<BuildInfo> buildInfos);
     }
 }

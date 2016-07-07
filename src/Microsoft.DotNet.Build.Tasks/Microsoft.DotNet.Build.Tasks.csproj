@@ -48,7 +48,7 @@
     <Compile Include="ValidateExactRestore.cs" />
     <Compile Include="VersionTools\MsBuildTraceListener.cs" />
     <Compile Include="VersionTools\TraceListenerCollectionExtensions.cs" />
-    <Compile Include="VersionTools\UpgradeProjectDependencies.cs" />
+    <Compile Include="VersionTools\UpdateDependencies.cs" />
     <Compile Include="VersionTools\UpdatePublishedVersions.cs" />
     <Compile Include="VisitProjectDependencies.cs" />
     <Compile Include="ValidateProjectDependencyVersions.cs" />

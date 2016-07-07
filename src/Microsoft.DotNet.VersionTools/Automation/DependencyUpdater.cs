@@ -2,17 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.DotNet.VersionTools.Upgrade;
 using Microsoft.DotNet.VersionTools.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.DotNet.VersionTools.Dependencies;
 
 namespace Microsoft.DotNet.VersionTools.Automation
 {
-    public class ProjectUpgradePr
+    public class DependencyUpdater
     {
         private GitHubAuth _gitHubAuth;
         private string _projectRepo;
@@ -23,7 +23,7 @@ namespace Microsoft.DotNet.VersionTools.Automation
 
         public string CommitMessageOverride { get; set; }
 
-        public ProjectUpgradePr(
+        public DependencyUpdater(
             GitHubAuth gitHubAuth,
             string projectRepo,
             string projectRepoOwner = null,
@@ -50,14 +50,14 @@ namespace Microsoft.DotNet.VersionTools.Automation
         }
 
         public async Task CreateAndSubmitAsync(
-            IEnumerable<IDependencyUpgrader> upgraders,
+            IEnumerable<IDependencyUpdater> updaters,
             IEnumerable<BuildInfo> buildInfos)
         {
             IEnumerable<BuildInfo> usedBuildInfos = Enumerable.Empty<BuildInfo>();
 
-            foreach (IDependencyUpgrader upgrader in upgraders)
+            foreach (IDependencyUpdater updater in updaters)
             {
-                IEnumerable<BuildInfo> newUsedBuildInfos = upgrader.Upgrade(buildInfos);
+                IEnumerable<BuildInfo> newUsedBuildInfos = updater.Update(buildInfos);
                 usedBuildInfos = usedBuildInfos.Union(newUsedBuildInfos);
             }
             usedBuildInfos = usedBuildInfos.ToArray();
@@ -68,7 +68,7 @@ namespace Microsoft.DotNet.VersionTools.Automation
                 string updatedDependencyNames = string.Join(", ", usedBuildInfos.Select(d => d.Name));
                 string updatedDependencyVersions = string.Join(", ", usedBuildInfos.Select(d => d.LatestReleaseVersion));
 
-                commitMessage = $"Upgrade {updatedDependencyNames} to {updatedDependencyVersions}";
+                commitMessage = $"Update {updatedDependencyNames} to {updatedDependencyVersions}";
                 if (usedBuildInfos.Count() > 1)
                 {
                     commitMessage += ", respectively";
@@ -147,7 +147,7 @@ namespace Microsoft.DotNet.VersionTools.Automation
 
         private async Task SubmitPullRequestAsync(string title, string remoteBranchName)
         {
-            string description = "Automated upgrade based on dotnet/versions repository.";
+            string description = "Automated update based on dotnet/versions repository.";
             if (_notifyGitHubUsers != null)
             {
                 description += $"\n\n/cc @{string.Join(" @", _notifyGitHubUsers)}";

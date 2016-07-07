@@ -17,19 +17,19 @@
                              VersionRepoOwner="$(VersionRepoOwner)" />
   </Target>
 
-  <UsingTask TaskName="UpgradeProjectDependencies" AssemblyFile="$(BuildToolsTaskDir)Microsoft.DotNet.Build.Tasks.dll" />
+  <UsingTask TaskName="UpdateDependencies" AssemblyFile="$(BuildToolsTaskDir)Microsoft.DotNet.Build.Tasks.dll" />
 
-  <Target Name="UpgradeProjectDependencies">
-    <UpgradeProjectDependencies DependencyBuildInfo="@(DependencyBuildInfo)"
-                                ProjectJsonFiles="@(ProjectJsonFiles)"
-                                XmlUpgradeStep="@(XmlUpgradeStep)"
-                                ProjectRepo="$(ProjectRepo)"
-                                ProjectRepoOwner="$(ProjectRepoOwner)"
-                                ProjectRepoBranch="$(ProjectRepoBranch)"
-                                GitHubAuthToken="$(GitHubAuthToken)"
-                                GitHubUser="$(GitHubUser)"
-                                GitHubEmail="$(GitHubEmail)"
-                                GitHubAuthor="$(GitHubAuthor)"
-                                NotifyGitHubUsers="@(NotifyGitHubUsers)" />
+  <Target Name="UpdateDependencies">
+    <UpdateDependencies DependencyBuildInfo="@(DependencyBuildInfo)"
+                        ProjectJsonFiles="@(ProjectJsonFiles)"
+                        XmlUpdateStep="@(XmlUpdateStep)"
+                        ProjectRepo="$(ProjectRepo)"
+                        ProjectRepoOwner="$(ProjectRepoOwner)"
+                        ProjectRepoBranch="$(ProjectRepoBranch)"
+                        GitHubAuthToken="$(GitHubAuthToken)"
+                        GitHubUser="$(GitHubUser)"
+                        GitHubEmail="$(GitHubEmail)"
+                        GitHubAuthor="$(GitHubAuthor)"
+                        NotifyGitHubUsers="@(NotifyGitHubUsers)" />
   </Target>
 </Project>

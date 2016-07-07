@@ -21,19 +21,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Automation\GitHubHttpClient.cs" />
-    <Compile Include="Automation\ProjectUpgradePr.cs" />
-    <Compile Include="Upgrade\FileRegexPackageUpgrader.cs" />
-    <Compile Include="Upgrade\FileRegexReleaseUpgrader.cs" />
+    <Compile Include="Automation\DependencyUpdater.cs" />
+    <Compile Include="Dependencies\FileRegexPackageUpdater.cs" />
+    <Compile Include="Dependencies\FileRegexReleaseUpdater.cs" />
     <Compile Include="Util\ArgumentEscaper.cs" />
     <Compile Include="Util\Command.cs" />
     <Compile Include="Util\CommandResult.cs" />
     <Compile Include="Automation\GitHubAuth.cs" />
     <Compile Include="Automation\NupkgNameInfo.cs" />
-    <Compile Include="Upgrade\FileRegexUpgrader.cs" />
-    <Compile Include="Upgrade\IDependencyUpgrader.cs" />
+    <Compile Include="Dependencies\FileRegexUpdater.cs" />
+    <Compile Include="Dependencies\IDependencyUpdater.cs" />
     <Compile Include="PackageInfo.cs" />
     <Compile Include="BuildInfo.cs" />
-    <Compile Include="Upgrade\ProjectJsonUpgrader.cs" />
+    <Compile Include="Dependencies\ProjectJsonUpdater.cs" />
     <Compile Include="Automation\VersionRepoUpdater.cs" />
   </ItemGroup>
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />

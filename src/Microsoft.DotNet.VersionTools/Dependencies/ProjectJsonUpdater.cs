@@ -2,29 +2,29 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NuGet.Versioning;
 
-namespace Microsoft.DotNet.VersionTools.Upgrade
+namespace Microsoft.DotNet.VersionTools.Dependencies
 {
-    public class ProjectJsonUpgrader : IDependencyUpgrader
+    public class ProjectJsonUpdater : IDependencyUpdater
     {
         public IEnumerable<string> ProjectJsonPaths { get; }
 
         public bool SkipStableVersions { get; set; } = true;
 
-        public ProjectJsonUpgrader(IEnumerable<string> projectJsonPaths)
+        public ProjectJsonUpdater(IEnumerable<string> projectJsonPaths)
         {
             ProjectJsonPaths = projectJsonPaths;
         }
 
-        public IEnumerable<BuildInfo> Upgrade(IEnumerable<BuildInfo> buildInfos)
+        public IEnumerable<BuildInfo> Update(IEnumerable<BuildInfo> buildInfos)
         {
             foreach (string projectJsonFile in ProjectJsonPaths)
             {
@@ -65,7 +65,7 @@ namespace Microsoft.DotNet.VersionTools.Upgrade
 
         /// <summary>
         /// Replaces the single dependency with the updated version, if it matches any of the
-        /// dependencies that need to be updated. Stops on the first upgraded value found.
+        /// dependencies that need to be updated. Stops on the first updated value found.
         /// </summary>
         /// <returns>The BuildInfo used to change the value, or null if there was no change.</returns>
         private BuildInfo ReplaceDependencyVersion(

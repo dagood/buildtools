@@ -10,15 +10,15 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Microsoft.DotNet.VersionTools.Upgrade
+namespace Microsoft.DotNet.VersionTools.Dependencies
 {
-    public abstract class FileRegexUpgrader : IDependencyUpgrader
+    public abstract class FileRegexUpdater : IDependencyUpdater
     {
         public string Path { get; set; }
         public Regex Regex { get; set; }
         public string VersionGroupName { get; set; }
 
-        public IEnumerable<BuildInfo> Upgrade(IEnumerable<BuildInfo> buildInfos)
+        public IEnumerable<BuildInfo> Update(IEnumerable<BuildInfo> buildInfos)
         {
             IEnumerable<BuildInfo> usedBuildInfos;
             string newValue = TryGetDesiredValue(buildInfos, out usedBuildInfos);
