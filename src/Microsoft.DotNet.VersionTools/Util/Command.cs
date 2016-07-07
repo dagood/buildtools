@@ -12,7 +12,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.DotNet.VersionTools.Util
 {
-    public class Command
+    class Command
     {
         public static readonly string[] RunnableSuffixes = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? new string[] { ".exe", ".cmd", ".bat" }
