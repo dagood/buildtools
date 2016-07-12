@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.DotNet.VersionTools.Automation.PullRequest;
 using Microsoft.DotNet.VersionTools.Dependencies;
 
 namespace Microsoft.DotNet.Build.Tasks.VersionTools
@@ -48,15 +49,19 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
 
             var gitHubAuth = new GitHubAuth(GitHubAuthToken, GitHubUser, GitHubEmail);
 
-            var updater = new DependencyUpdater(
-                gitHubAuth,
-                ProjectRepo,
-                ProjectRepoOwner,
-                ProjectRepoBranch,
-                GitHubAuthor ?? GitHubUser,
-                NotifyGitHubUsers?.Select(item => item.ItemSpec));
+            var updater = new DependencyUpdater();
 
-            updater.UpdateAndSubmitPullRequestAsync(updaters, buildInfos).Wait();
+            var submitter = new UpdatePullRequestSubmitter(new PullRequestConfig
+            {
+                GitHubAuth = gitHubAuth,
+                ProjectRepo = ProjectRepo,
+                ProjectRepoOwner = ProjectRepoOwner,
+                ProjectRepoBranch = ProjectRepoBranch,
+                GitAuthorName = GitHubAuthor ?? GitHubUser,
+                NotifyGitHubUsers = NotifyGitHubUsers?.Select(item => item.ItemSpec)
+            });
+
+            updater.UpdateAndSubmitPullRequestAsync(updaters, buildInfos, submitter).Wait();
 
             Trace.Listeners.RemoveMsBuildTraceListeners(listeners);
 

@@ -5,10 +5,15 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.DotNet.VersionTools.Automation.PullRequest;
+using Newtonsoft.Json.Serialization;
 
 namespace Microsoft.DotNet.VersionTools.Automation
 {
@@ -89,6 +94,59 @@ namespace Microsoft.DotNet.VersionTools.Automation
                 string htmlUrl = responseContent["html_url"].ToString();
 
                 Trace.TraceInformation($"Pull request page link: {htmlUrl}");
+            }
+        }
+
+        public async Task<GitHubPullRequest> FindPullRequestByHeadAsync(
+            string owner,
+            string project,
+            string headPrefix,
+            string author,
+            string sortType = "created")
+        {
+            int pullRequestNumber;
+
+            // First: find the number of the pull request.
+            string queryString = $"repo:{owner}/{project}+head:{headPrefix}+author:{author}+state:open";
+            string queryUrl = $"https://api.github.com/search/issues?q={queryString}&sort={sortType}&order=desc";
+
+
+            using (HttpResponseMessage response = await GetAsync(queryUrl))
+            {
+                response.EnsureSuccessStatusCode();
+                JObject responseContent = JObject.Parse(await response.Content.ReadAsStringAsync());
+
+                int totalCount = responseContent["total_count"].Value<int>();
+                JArray items = (JArray)responseContent["items"];
+
+                if (totalCount == 0)
+                {
+                    Trace.TraceInformation($"Could not find any pull request with head {headPrefix}");
+                    return null;
+                }
+                if (totalCount > 1)
+                {
+                    Trace.TraceInformation($"Found multiple pull requests with head {headPrefix}.");
+
+                    IEnumerable<int> allIds = items.Select(item => item["id"].Value<int>());
+
+                    Trace.TraceInformation($"On this page, found {string.Join(", ", allIds)}");
+                }
+
+                pullRequestNumber = items.First()["number"].Value<int>();
+            }
+            // Second: fetch details for the pull request.
+            string pullRequestUrl = $"https://api.github.com/repos/{owner}/{project}/pulls/{pullRequestNumber}";
+
+            using (HttpResponseMessage response = await GetAsync(pullRequestUrl))
+            {
+                response.EnsureSuccessStatusCode();
+                return JsonConvert.DeserializeObject<GitHubPullRequest>(
+                    await response.Content.ReadAsStringAsync(),
+                    new JsonSerializerSettings
+                    {
+                        ContractResolver = new CamelCasePropertyNamesContractResolver()
+                    });
             }
         }
 

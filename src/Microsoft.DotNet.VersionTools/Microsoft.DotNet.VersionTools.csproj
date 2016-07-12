@@ -22,6 +22,10 @@
   <ItemGroup>
     <Compile Include="Automation\GitHubHttpClient.cs" />
     <Compile Include="Automation\DependencyUpdater.cs" />
+    <Compile Include="Automation\PullRequest\GitHubPullRequest.cs" />
+    <Compile Include="Automation\PullRequest\PullRequestConfig.cs" />
+    <Compile Include="Automation\PullRequest\UpdatePullRequestSubmitter.cs" />
+    <Compile Include="Automation\PullRequest\PullRequestSubmitter.cs" />
     <Compile Include="Dependencies\FileRegexPackageUpdater.cs" />
     <Compile Include="Dependencies\FileRegexReleaseUpdater.cs" />
     <Compile Include="Util\ArgumentEscaper.cs" />
