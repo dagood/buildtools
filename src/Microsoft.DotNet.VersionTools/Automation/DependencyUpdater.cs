@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.DotNet.VersionTools.Util;
+using Microsoft.DotNet.VersionTools.Dependencies;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
-using Microsoft.DotNet.VersionTools.Dependencies;
 
 namespace Microsoft.DotNet.VersionTools.Automation
 {
@@ -113,12 +113,7 @@ namespace Microsoft.DotNet.VersionTools.Automation
 
         private bool GitHasChanges()
         {
-            CommandResult statusResult = Git("status", "--porcelain")
-                .CaptureStdOut()
-                .Execute();
-            statusResult.EnsureSuccessful();
-
-            return !string.IsNullOrWhiteSpace(statusResult.StdOut);
+            return !string.IsNullOrWhiteSpace(Git("status", "--porcelain"));
         }
 
         private void PushNewCommit(string commitMessage, string remoteBranchName)
@@ -127,9 +122,7 @@ namespace Microsoft.DotNet.VersionTools.Automation
             Environment.SetEnvironmentVariable("GIT_COMMITTER_NAME", _gitAuthorName);
             Environment.SetEnvironmentVariable("GIT_COMMITTER_EMAIL", _gitHubAuth.Email);
 
-            Git("commit", "-a", "-m", commitMessage, "--author", $"{_gitAuthorName} <{_gitHubAuth.Email}>")
-                .Execute()
-                .EnsureSuccessful();
+            Git("commit", "-a", "-m", commitMessage, "--author", $"{_gitAuthorName} <{_gitHubAuth.Email}>");
 
             string remoteUrl = $"github.com/{_gitHubAuth.User}/{_projectRepo}.git";
             string refSpec = $"HEAD:refs/heads/{remoteBranchName}";
@@ -137,24 +130,7 @@ namespace Microsoft.DotNet.VersionTools.Automation
             string logMessage = $"git push https://{remoteUrl} {refSpec}";
             Trace.TraceInformation($"EXEC {logMessage}");
 
-            CommandResult pushResult =
-                Git("push", $"https://{_gitHubAuth.User}:{_gitHubAuth.AuthToken}@{remoteUrl}", refSpec)
-                    .QuietBuildReporter()  // we don't want secrets showing up in our logs
-                    .CaptureStdErr() // git push will write to StdErr upon success, disable that
-                    .CaptureStdOut()
-                    .Execute();
-
-            var message = logMessage + $" exited with {pushResult.ExitCode}";
-            if (pushResult.ExitCode == 0)
-            {
-                Trace.TraceInformation($"EXEC success: {message}");
-            }
-            else
-            {
-                Trace.TraceError($"EXEC failure: {message}");
-            }
-
-            pushResult.EnsureSuccessful(suppressOutput: true);
+            Git("push", $"https://{_gitHubAuth.User}:{_gitHubAuth.AuthToken}@{remoteUrl}", refSpec);
         }
 
         private async Task SubmitPullRequestAsync(string title, string remoteBranchName)
@@ -178,6 +154,60 @@ namespace Microsoft.DotNet.VersionTools.Automation
             }
         }
 
-        private static Command Git(params string[] args) => Command.Create("git", args);
+        private static string Git(params string[] args)
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "git",
+                    Arguments = string.Join(" ", args),
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false
+                },
+                EnableRaisingEvents = true
+            };
+
+            var standardOutputData = new StringBuilder();
+
+            process.OutputDataReceived += (sender, eventArgs) =>
+            {
+                standardOutputData.Append(eventArgs.Data);
+                standardOutputData.Append(Environment.NewLine);
+
+                if (!string.IsNullOrWhiteSpace(eventArgs.Data))
+                {
+                    Trace.TraceInformation(eventArgs.Data);
+                }
+            };
+
+            process.ErrorDataReceived += (sender, eventArgs) =>
+            {
+                if (!string.IsNullOrWhiteSpace(eventArgs.Data))
+                {
+                    Trace.TraceError(eventArgs.Data);
+                }
+            };
+
+            string processString = $"{process.StartInfo.FileName} {process.StartInfo.Arguments}";
+            Trace.TraceInformation($"Starting process '{processString}'");
+
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            process.WaitForExit();
+
+            int exitCode = process.ExitCode;
+
+            Trace.TraceInformation($"Process ended with exit code {exitCode}.");
+
+            if (exitCode != 0)
+            {
+                throw new Exception($"'{processString}' returned non-zero exit code {exitCode}.");
+            }
+
+            return standardOutputData.ToString();
+        }
     }
 }

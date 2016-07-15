@@ -24,9 +24,6 @@
     <Compile Include="Automation\DependencyUpdater.cs" />
     <Compile Include="Dependencies\FileRegexPackageUpdater.cs" />
     <Compile Include="Dependencies\FileRegexReleaseUpdater.cs" />
-    <Compile Include="Util\ArgumentEscaper.cs" />
-    <Compile Include="Util\Command.cs" />
-    <Compile Include="Util\CommandResult.cs" />
     <Compile Include="Automation\GitHubAuth.cs" />
     <Compile Include="Automation\NupkgNameInfo.cs" />
     <Compile Include="Dependencies\FileRegexUpdater.cs" />
