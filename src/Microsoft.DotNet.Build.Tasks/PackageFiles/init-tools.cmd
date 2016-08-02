@@ -30,7 +30,7 @@ ROBOCOPY "%BUILDTOOLS_PACKAGE_DIR%\." "%TOOLRUNTIME_DIR%" /E
 
 set TOOLRUNTIME_PROJECTJSON=%BUILDTOOLS_PACKAGE_DIR%\tool-runtime\project.json
 @echo on
-call "%DOTNET_CMD%" restore "%TOOLRUNTIME_PROJECTJSON%" --source https://dotnet.myget.org/F/dotnet-core/api/v3/index.json --source https://dotnet.myget.org/F/dotnet-buildtools/api/v3/index.json --source https://api.nuget.org/v3/index.json
+call "%DOTNET_CMD%" restore "%TOOLRUNTIME_PROJECTJSON%" --source https://dotnet.myget.org/F/dotnet-core/api/v3/index.json --source https://dotnet.myget.org/F/dotnet-buildtools/api/v3/index.json --source https://api.nuget.org/v3/index.json %BUILDTOOLS_EXTRA_RESTORE_ARGS%
 set RESTORE_ERROR_LEVEL=%ERRORLEVEL%
 @echo off
 if not [%RESTORE_ERROR_LEVEL%]==[0] (
@@ -59,7 +59,7 @@ if not exist "%PACKAGES_DIR%\generated" mkdir "%PACKAGES_DIR%\generated"
 set PORTABLETARGETS_PROJECTJSON=%PACKAGES_DIR%\generated\project.json
 echo %MSBUILD_CONTENT_JSON% > "%PORTABLETARGETS_PROJECTJSON%"
 @echo on
-call "%DOTNET_CMD%" restore "%PORTABLETARGETS_PROJECTJSON%" --source https://dotnet.myget.org/F/dotnet-buildtools/api/v3/index.json --source https://api.nuget.org/v3/index.json --packages "%PACKAGES_DIR%\."
+call "%DOTNET_CMD%" restore "%PORTABLETARGETS_PROJECTJSON%" --source https://dotnet.myget.org/F/dotnet-buildtools/api/v3/index.json --source https://api.nuget.org/v3/index.json --packages "%PACKAGES_DIR%\." %BUILDTOOLS_EXTRA_RESTORE_ARGS%
 set RESTORE_PORTABLETARGETS_ERROR_LEVEL=%ERRORLEVEL%
 @echo off
 if not [%RESTORE_PORTABLETARGETS_ERROR_LEVEL%]==[0] (
