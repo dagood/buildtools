@@ -17,7 +17,7 @@ BuildTools scans the `Produces` output and uploads it to dotnet/versions.  If a 
 In our current official builds, we produce all packages / artifacts for all OS's and we can publish this information.  Updates to dotnet/versions repo version of produces.json should only come from official builds.  We should be able to support the dev scenario where a single platform / architecture is being built and providing this information for a `change/consumes`. In the dev scenario, we would generate a subset of the full produces.json, that contains only what was locally built (or what is available in the build `produces` drop).  There are two assumptions here:
 
 1. There are no x-plat dependencies between repos (including x64 dependencies on x86 artifacts).
-2. All artifacts, in the produces drop, follow a standard naming convention which includes OS / architecture information when appropriate.  
--  This is to prevent artifact collisions, but OS / architecture information is only necessary where contents are dependent on those metrics.  Artifacts which are agnostic or platform or architecture would not require those pieces of naming data (per standard convention).
+- All artifacts, in the produces drop, follow a standard naming convention which includes OS / architecture information when appropriate.  
+ -  This is to prevent artifact collisions, but OS / architecture information is only necessary where contents are dependent on those metrics.  Artifacts which are agnostic or platform or architecture would not require those pieces of naming data (per standard convention).
 
   
