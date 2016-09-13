@@ -40,3 +40,30 @@ When the build completes you will have a produces.json file in `$(BinDir)\produc
  - Default value: (empty)
 
 If an auth token is specified, then the generated produces.json will be committed to the dotnet/versions repo.
+
+## Sample produces.json
+``` json
+{
+  "packages": {
+    "Microsoft.DotNet.PlatformAbstractions": "1.0.1-beta-000933",
+    "Microsoft.Extensions.DependencyModel": "1.0.1-beta-000933"
+  },
+  "symbols-packages": {
+    "Microsoft.DotNet.PlatformAbstractions": "1.0.1-beta-000933",
+    "Microsoft.Extensions.DependencyModel": "1.0.1-beta-000933"
+  },
+  "files": [
+    "dotnet-host-win-x64.1.0.2-beta-000933-00.msi",
+    "dotnet-host-win-x64.1.0.2-beta-000933-00.wixpdb",
+    "dotnet-hostfxr-win-x64.1.0.2-beta-000933-00.msi",
+    "dotnet-hostfxr-win-x64.1.0.2-beta-000933-00.wixpdb",
+    "dotnet-hostfxr-win-x64.1.0.2-beta-000933-00.zip",
+    "dotnet-sharedframework-win-x64.1.1.0-beta-000933-00.msi",
+    "dotnet-sharedframework-win-x64.1.1.0-beta-000933-00.wixpdb",
+    "dotnet-sharedframework-win-x64.1.1.0-beta-000933-00.zip",
+    "dotnet-win-x64.1.1.0-beta-000933-00.exe",
+    "dotnet-win-x64.1.1.0-beta-000933-00.wixpdb",
+    "dotnet-win-x64.1.1.0-beta-000933-00.zip"
+  ]
+}
+```
