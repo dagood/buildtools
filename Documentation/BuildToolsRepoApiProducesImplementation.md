@@ -20,4 +20,23 @@ In our current official builds, we produce all packages / artifacts for all OS's
 - All artifacts, in the produces drop, follow a standard naming convention which includes OS / architecture information when appropriate.  
  -  This is to prevent artifact collisions, but OS / architecture information is only necessary where contents are dependent on those metrics.  Artifacts which are agnostic or platform or architecture would not require those pieces of naming data (per standard convention).
 
-  
+## Example
+
+### Typical build
+
+- Ensure that your produces artifacts are pushed to a single build output folder
+ - MSBuild property: ProducesPublishFolder
+ - Default value: $(BinDir)\produces\artifacts
+- Wire your repo to call the "GenerateProduces" target as a post-build step
+ - ie, for CoreFx, you could edit src\post.builds and set `<Target Name="Build" DependsOnTargets="GenerateProduces"/>`
+ 
+When the build completes you will have a produces.json file in `$(BinDir)\produces`.
+
+### Official build
+
+- Same requirements as for a "Typical build" and...
+- Set the auth token for pushing files to the dotnet/versions repo
+ - MSBuild property: VersionsRepoAuthToken
+ - Default value: (empty)
+
+If an auth token is specified, then the generated produces.json will be committed to the dotnet/versions repo.
