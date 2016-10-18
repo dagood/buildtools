@@ -2,7 +2,7 @@ Note that this document relates to checking in existing build definitions which 
 
 #### Summary
 
-I would like to create a stand-alone package in BuildTools named Microsoft.DotNet.Builds.VSTSBuildsApi that would allow us to group build definitions together and, given a checked in build definition, it would create or update the grouped VSTS build definition and return that build definition's id. 
+I would like to create a stand-alone package in BuildTools named Microsoft.DotNet.Builds.VSTSBuildsApi that would allow us to group build definitions together and, given a checked in build definition, it would create or update the grouped VSTS build definition and return that build definition's id for use in a build orchestration tool. 
 
 #### <a id="CheckInDefinitionsProposal"></a>Checked in Build Definitions
 
@@ -10,34 +10,7 @@ VSTS REST API's provide a mechanism whereby you can create, update, retrieve, an
 
 Build definitions should be checked-in to a repo.   The REST API's are full-fledged enough to allow us to query for build definitions, update build definitions, and create build definitions based on json text. A key piece is how we identify definitions.  We need some method to uniquely identify build definition files for a given repo / branch.  
 
-**Grouping build definitions**
-
-We should be able to have checked-in, named, build definitions.  When an orchestrator picks up that local build definition and queries VSTS, it will need to correlate a group of build definitions in a way that logically makes sense. There may be multiple build definitions with the same name representing different releases, or build orchestration instances. 
-
-Here are a couple of options for uniquely identifying a build definition
-
-1. Make the VSTS definition name be a combination of the name, repo path, and branch that they represent.
-- Example: for a checked in build definition, DotNet-CoreFx-Trusted-Windows-Native.json, the corresponding VSTS definition targetting dotnet/corefx:master would be corefx_master_DotNet-CoreFx-Trusted-Windows-Native.
-
-2. Provide a unique identifier from the orchestrator instance.  
-- For PipeBuild, if PipeBuild is being scheduled from VSTS, then you can use the definition ID from the PipeBuild definition.
-- Example: for a checked in build definition, DotNet-CoreFx-Trusted-Windows-Native.json, the corresponding VSTS definition would be 123456_DotNet-CoreFx-Trusted-Windows-Native.
-
-3. Don't uniquely identify a build definition, just always create a new one.
-
-My preference is for option (2).  Using an identifier provides a hook so that we can relate any build definition back to the instance which spawned it (something which is often difficult to do).  This would also allow us to have multiple build systems utilizing the infrastructure which would be less likely to encounter name collisions, ie greater flexibility.
-
-**Build definition repositories**
-
-It's up to each repo where they want to check in their build definitions.  The two obvious choices for location are:
-
-1. VSTS Git - This is a good choice because it provides a secure location for build definitions.  Negatives, must be cognizant of corresponding branch changes and ensuring that build definitions are branched in sync with those changes.
-
-2. GitHub - This is a nice choice because it has the benefit of evolving / moving, along with the code it is tied to.  On the negative side, it forces every dev to carry these definitions with in their enlistment them when 99.9% of devs will not need or care about them.
-
-My preference is for option 1.  There is a small maintenance cost which we will have to pay, but we should be cognizant of changes in this area anyways.  We're still able to branch / fork build definitions in sync with product changes. 
-
-**Checked in definitions implementation**
+**Checked-in Definitions Implementation**
 
 Implementation options for supporting checked in build definitions include:
 
@@ -85,9 +58,37 @@ A typical usage would be...
 
 Given a definition path, VSTSBuildsApi would:
 
-1. load the definition
+1. load the local build definition
 2. join the `collectionId` with the definition name to create a unique VSTS definition name
 3. look in VSTS for that definition name
 4. create or update the definition
 5. return the discovered or new definition Id which the orchestrator usese for queuing builds.
+
+**Grouping build definitions with a collectionId**
+
+We should be able to have checked-in, named, build definitions.  When an orchestrator picks up that local build definition and queries VSTS, it will need to correlate a group of build definitions in a way that logically makes sense. There may be multiple build definitions with the same name representing different releases, or build orchestration instances. 
+
+Here are a couple of options for uniquely identifying a build definition
+
+1. Make the VSTS definition name be a combination of the name, repo path, and branch that they represent.
+- Example: for a checked in build definition, DotNet-CoreFx-Trusted-Windows-Native.json, the corresponding VSTS definition targetting dotnet/corefx:master would be corefx_master_DotNet-CoreFx-Trusted-Windows-Native.
+
+2. Provide a unique identifier from the orchestrator instance.  
+- For PipeBuild, if PipeBuild is being scheduled from VSTS, then you can use the definition ID from the PipeBuild definition.
+- Example: for a checked in build definition, DotNet-CoreFx-Trusted-Windows-Native.json, the corresponding VSTS definition would be 123456_DotNet-CoreFx-Trusted-Windows-Native.
+
+3. Don't uniquely identify a build definition, just always create a new one.
+
+My preference is for option (2).  Using an identifier provides a hook so that we can relate any build definition back to the instance which spawned it (something which is often difficult to do).  This would also allow us to have multiple build systems utilizing the infrastructure which would be less likely to encounter name collisions, ie greater flexibility.
+
+**Build definition repositories**
+
+The two obvious choices for checked in build definition locations are:
+
+1. VSTS Git - This is a good choice because it provides a secure location for build definitions.  Negatives, must be cognizant of corresponding branch changes and ensuring that build definitions are branched in sync with those changes.
+
+2. GitHub - This is a nice choice because it has the benefit of evolving / moving, along with the code it is tied to.  On the negative side, it forces every dev to carry these definitions with in their enlistment them when 99.9% of devs will not need or care about them.
+
+My preference is for option 1.  There is a small maintenance cost which we will have to pay, but we should be cognizant of changes in this area anyways.  We're still able to branch / fork build definitions in sync with product changes. 
+
 
