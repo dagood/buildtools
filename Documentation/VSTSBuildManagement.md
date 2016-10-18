@@ -4,7 +4,7 @@ Note that this document relates to checking in existing build definitions which 
 
 I would like to create a stand-alone package in BuildTools named Microsoft.DotNet.Builds.VSTSBuildsApi that would allow us to group build definitions together and, given a checked in build definition, it would create or update the grouped VSTS build definition and return that build definition's id for use in a build orchestration tool. 
 
-#### <a id="CheckInDefinitionsProposal"></a>Checked in Build Definitions
+#### <a id="CheckInDefinitionsProposal"></a>Checked-in Build Definitions
 
 VSTS REST API's provide a mechanism whereby you can create, update, retrieve, and list VSTS build / release definitions in JSON format.  Provided local VSTS JSON formatted build definitions, an orchestrator should be able to query VSTS to either create or update the relevant build / release definition.
 
