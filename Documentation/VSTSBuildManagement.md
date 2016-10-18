@@ -71,10 +71,13 @@ We should be able to have checked-in, named, build definitions.  When an orchest
 Here are a couple of options for uniquely identifying a build definition
 
 1. Make the VSTS definition name be a combination of the name, repo path, and branch that they represent.
+
 - Example: for a checked in build definition, DotNet-CoreFx-Trusted-Windows-Native.json, the corresponding VSTS definition targetting dotnet/corefx:master would be corefx_master_DotNet-CoreFx-Trusted-Windows-Native.
 
-2. Provide a unique identifier from the orchestrator instance.  
+2. Provide a unique identifier from the orchestrator instance.
+
 - For PipeBuild, if PipeBuild is being scheduled from VSTS, then you can use the definition ID from the PipeBuild definition.
+
 - Example: for a checked in build definition, DotNet-CoreFx-Trusted-Windows-Native.json, the corresponding VSTS definition would be 123456_DotNet-CoreFx-Trusted-Windows-Native.
 
 3. Don't uniquely identify a build definition, just always create a new one.
