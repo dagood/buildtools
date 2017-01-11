@@ -66,13 +66,13 @@ download() {
     eval $invocation
     
     local remote_path=$1
-    local out_path=${2:-}
+    local out_path="${2:-}"
 
     local failed=false
     if [ -z "$out_path" ]; then
         curl --retry 10 -sSL --create-dirs $remote_path || failed=true
     else
-        curl --retry 10 -sSL --create-dirs -o $out_path $remote_path || failed=true
+        curl --retry 10 -sSL --create-dirs -o "$out_path" $remote_path || failed=true
     fi
     
     if [ "$failed" = true ]; then
@@ -142,19 +142,19 @@ do
     shift
 done
 
-if [ $toolsLocalPath = "<auto>" ]; then
+if [ "$toolsLocalPath" = "<auto>" ]; then
     toolsLocalPath="$repoRoot/Tools"
 fi
 
-if [ $cliLocalPath = "<auto>" ]; then
-    if [ $forcedCliLocalPath = "<none>" ]; then
+if [ "$cliLocalPath" = "<auto>" ]; then
+    if [ "$forcedCliLocalPath" = "<none>" ]; then
         cliLocalPath="$toolsLocalPath/dotnetcli"
     else
-        cliLocalPath=$forcedCliLocalPath
+        cliLocalPath="$forcedCliLocalPath"
     fi
 fi
 
-if [ $symlinkPath = "<auto>" ]; then
+if [ "$symlinkPath" = "<auto>" ]; then
     symlinkPath="$toolsLocalPath/dotnetcli/shared/Microsoft.NETCore.App/version"
 fi
 
@@ -162,12 +162,12 @@ rootToolVersions="$repoRoot/.toolversions"
 bootstrapComplete="$toolsLocalPath/bootstrap.complete"
 
 # if the force switch is specified delete the semaphore file if it exists
-if [[ $force && -f $bootstrapComplete ]]; then
-    rm -f $bootstrapComplete
+if [[ $force && -f "$bootstrapComplete" ]]; then
+    rm -f "$bootstrapComplete"
 fi
 
 # if the semaphore file exists and is identical to the specified version then exit
-if [[ -f $bootstrapComplete && ! `cmp $bootstrapComplete $rootToolVersions` ]]; then
+if [[ -f "$bootstrapComplete" && ! `cmp "$bootstrapComplete" "$rootToolVersions"` ]]; then
     say "$bootstrapComplete appears to show that bootstrapping is complete.  Use --force if you want to re-bootstrap."
     exit 0
 fi
@@ -176,14 +176,14 @@ initCliScript="dotnet-install.sh"
 dotnetInstallPath="$toolsLocalPath/$initCliScript"
 
 # blow away the tools directory so we can start from a known state
-if [ -d $toolsLocalPath ]; then
+if [ -d "$toolsLocalPath" ]; then
     # if the bootstrap.sh script was downloaded to the tools directory don't delete it
-    find $toolsLocalPath -type f -not -name bootstrap.sh -exec rm -f {} \;
+    find "$toolsLocalPath" -type f -not -name bootstrap.sh -exec rm -f {} \;
 else
-    mkdir $toolsLocalPath
+    mkdir "$toolsLocalPath"
 fi
 
-if [ $forcedCliLocalPath = "<none>" ]; then
+if [ "$forcedCliLocalPath" = "<none>" ]; then
     check_min_reqs
 
     # download CLI boot-strapper script
@@ -192,9 +192,9 @@ if [ $forcedCliLocalPath = "<none>" ]; then
 
     # load the version of the CLI
     rootCliVersion="$repoRoot/.cliversion"
-    dotNetCliVersion=`cat $rootCliVersion`
+    dotNetCliVersion=`cat "$rootCliVersion"`
 
-    if [ ! -e $cliLocalPath ]; then
+    if [ ! -e "$cliLocalPath" ]; then
         mkdir -p "$cliLocalPath"
     fi
 
@@ -213,7 +213,7 @@ fi
 runtimesPath="$cliLocalPath/shared/Microsoft.NETCore.App"
 if [ $sharedFxVersion = "<auto>" ]; then
     # OSX doesn't support --version-sort, https://stackoverflow.com/questions/21394536/how-to-simulate-sort-v-on-mac-osx
-    sharedFxVersion=`ls $runtimesPath | sed 's/^[0-9]\./0&/; s/\.\([0-9]\)$/.0\1/; s/\.\([0-9]\)\./.0\1./g; s/\.\([0-9]\)\./.0\1./g' | sort -r | sed 's/^0// ; s/\.0/./g' | head -n 1`
+    sharedFxVersion=`ls "$runtimesPath" | sed 's/^[0-9]\./0&/; s/\.\([0-9]\)$/.0\1/; s/\.\([0-9]\)\./.0\1./g; s/\.\([0-9]\)\./.0\1./g' | sort -r | sed 's/^0// ; s/\.0/./g' | head -n 1`
 fi
 
 # create a junction to the shared FX version directory. this is
@@ -221,12 +221,12 @@ fi
 junctionTarget="$runtimesPath/$sharedFxVersion"
 junctionParent="$(dirname "$symlinkPath")"
 
-if [ ! -d $junctionParent ]; then
-    mkdir -p $junctionParent
+if [ ! -d "$junctionParent" ]; then
+    mkdir -p "$junctionParent"
 fi
 
-if [ ! -e $symlinkPath ]; then
-    ln -s $junctionTarget $symlinkPath
+if [ ! -e "$symlinkPath" ]; then
+    ln -s "$junctionTarget" "$symlinkPath"
 fi
 
 # create a project.json for the packages to restore
@@ -235,9 +235,9 @@ pjContent="{ \"dependencies\": {"
 while read v; do
     IFS='=' read -r -a line <<< "$v"
     pjContent="$pjContent \"${line[0]}\": \"${line[1]}\","
-done <$rootToolVersions
+done <"$rootToolVersions"
 pjContent="$pjContent }, \"frameworks\": { \"netcoreapp1.0\": { } } }"
-echo $pjContent > $projectJson
+echo $pjContent > "$projectJson"
 
 # now restore the packages
 buildToolsSource="${BUILDTOOLS_SOURCE:-https://dotnet.myget.org/F/dotnet-buildtools/api/v3/index.json}"
@@ -262,7 +262,7 @@ while read v; do
     IFS='=' read -r -a line <<< "$v"
     # verify that the version we expect is what was restored
     pkgVerPath="$packagesPath/${line[0]}/${line[1]}"
-    if [ ! -d $pkgVerPath ]; then
+    if [ ! -d "$pkgVerPath" ]; then
         say_err "Directory $pkgVerPath doesn't exist, ensure that the version restore matches the version specified."
         exit 1
     fi
@@ -274,18 +274,18 @@ while read v; do
     #   3.  if a package contains a file "lib\init-tools.cmd" execute it.
     if [ -d "$pkgVerPath/tools" ]; then
         destination="$toolsLocalPath/${line[0]}"
-        mkdir -p $destination
-        cp -r $pkgVerPath/* $destination
+        mkdir -p "$destination"
+        cp -r "$pkgVerPath/*" "$destination"
     fi
     if [ -d "$pkgVerPath/lib" ]; then
-        cp -r $pkgVerPath/lib/* $toolsLocalPath
+        cp -r "$pkgVerPath/lib/*" "$toolsLocalPath"
     fi
     if [ -f "$pkgVerPath/lib/init-tools.sh" ]; then
         "$pkgVerPath/lib/init-tools.sh" "$repoRoot" "$dotNetExe" "$toolsLocalPath" > "init-${line[0]}.log"
     fi
-done <$rootToolVersions
+done <"$rootToolVersions"
 
-cp $rootToolVersions $bootstrapComplete
+cp "$rootToolVersions" "$bootstrapCompletebootstrapComplete"
 
 say "Bootstrap finished successfully."
 
