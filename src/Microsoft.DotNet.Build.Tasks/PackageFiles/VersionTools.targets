@@ -2,10 +2,10 @@
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
   <UsingTask TaskName="LocalUpdatePublishedVersions" AssemblyFile="$(BuildToolsTaskDir)Microsoft.DotNet.Build.Tasks.dll" />
+  <UsingTask TaskName="SubmitPullRequest" AssemblyFile="$(BuildToolsTaskDir)Microsoft.DotNet.Build.Tasks.dll" />
   <UsingTask TaskName="UpdateDependencies" AssemblyFile="$(BuildToolsTaskDir)Microsoft.DotNet.Build.Tasks.dll" />
   <UsingTask TaskName="UpdatePublishedVersions" AssemblyFile="$(BuildToolsTaskDir)Microsoft.DotNet.Build.Tasks.dll" />
   <UsingTask TaskName="UpdateToRemoteDependencies" AssemblyFile="$(BuildToolsTaskDir)Microsoft.DotNet.Build.Tasks.dll" />
-  <UsingTask TaskName="UpdateToRemoteDependenciesAndSubmitPullRequest" AssemblyFile="$(BuildToolsTaskDir)Microsoft.DotNet.Build.Tasks.dll" />
   <UsingTask TaskName="VerifyDependencies" AssemblyFile="$(BuildToolsTaskDir)Microsoft.DotNet.Build.Tasks.dll" />
 
   <PropertyGroup>
@@ -95,35 +95,40 @@
     <UpdateToRemoteDependencies DependencyInfo="@(DependencyInfo)"
                                 ProjectJsonFiles="@(ProjectJsonFiles)"
                                 UpdateStep="@(UpdateStep)"
-                                CurrentRefXmlPath="$(CurrentRefXmlPath)" />
+                                CurrentRefXmlPath="$(CurrentRefXmlPath)"
+                                GitHubAuthToken="$(GitHubAuthToken)"
+                                GitHubUser="$(GitHubUser)">
+      <Output TaskParameter="MadeChanges" PropertyName="MadeChanges"/>
+      <Output TaskParameter="SuggestedCommitMessage" PropertyName="CommitMessage"/>
+    </UpdateToRemoteDependencies>
+  </Target>
+
+  <Target Name="SubmitPullRequestIfChanged"
+          Condition="'$(MadeChanges)' == 'true'">
+    <SubmitPullRequest ProjectRepoName="$(ProjectRepoName)"
+                       ProjectRepoOwner="$(ProjectRepoOwner)"
+                       ProjectRepoBranch="$(ProjectRepoBranch)"
+                       GitHubAuthToken="$(GitHubAuthToken)"
+                       GitHubUser="$(GitHubUser)"
+                       GitHubEmail="$(GitHubEmail)"
+                       GitHubAuthor="$(GitHubAuthor)"
+                       CommitMessage="$(CommitMessage)"
+                       Title="$(PullRequestTitle)"
+                       Body="$(PullRequestBody)"
+                       NotifyGitHubUsers="@(NotifyGitHubUsers)"
+                       AlwaysCreateNewPullRequest="$(AlwaysCreateNewPullRequest)" />
   </Target>
 
   <!--
-    Update to the latest dependencies available remotely, then submit a pull request.
-  -->
-  <Target Name="UpdateToRemoteDependenciesAndSubmitPullRequest"
-          DependsOnTargets="CreateDefaultDependencyInfos">
-    <UpdateToRemoteDependenciesAndSubmitPullRequest DependencyInfo="@(DependencyInfo)"
-                                                    ProjectJsonFiles="@(ProjectJsonFiles)"
-                                                    UpdateStep="@(UpdateStep)"
-                                                    ProjectRepoName="$(ProjectRepoName)"
-                                                    ProjectRepoOwner="$(ProjectRepoOwner)"
-                                                    ProjectRepoBranch="$(ProjectRepoBranch)"
-                                                    GitHubAuthToken="$(GitHubAuthToken)"
-                                                    GitHubUser="$(GitHubUser)"
-                                                    GitHubEmail="$(GitHubEmail)"
-                                                    GitHubAuthor="$(GitHubAuthor)"
-                                                    NotifyGitHubUsers="@(NotifyGitHubUsers)"
-                                                    CurrentRefXmlPath="$(CurrentRefXmlPath)"
-                                                    AlwaysCreateNewPullRequest="$(AlwaysCreateNewPullRequest)"
-                                                    CommitMessage="$(CommitMessage)" />
-  </Target>
+    Calls both targets needed to produce an auto-upgrade pull request (to the remote state).
 
-  <!--
-    Deprecated auto-upgrade PR target. Redirects to the target's new name.
+    The name should be 'UpdateToRemoteDependenciesAndSubmitPullRequest'. The incorrect name is
+    preserved for backward compatibility, and predates 'UpdateToRemoteDependencies'. It's
+    recommended to call msbuild with targets 'UpdateToRemoteDependencies;SubmitPullRequestIfChanged'
+    when adding a new usage so the target names are clearer.
   -->
   <Target Name="UpdateDependenciesAndSubmitPullRequest">
-    <Message Importance="High" Text="'UpdateDependenciesAndSubmitPullRequest' has been renamed to 'UpdateToRemoteDependenciesAndSubmitPullRequest'. The old name is deprecated. Running the new target instead." />
-    <CallTarget Targets="UpdateToRemoteDependenciesAndSubmitPullRequest" />
+    <Message Importance="High" Text="Calling targets 'UpdateToRemoteDependencies;SubmitPullRequestIfChanged'" />
+    <CallTarget Targets="UpdateToRemoteDependencies;SubmitPullRequestIfChanged" />
   </Target>
 </Project>
