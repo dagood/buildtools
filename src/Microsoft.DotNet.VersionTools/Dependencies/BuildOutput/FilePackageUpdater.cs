@@ -12,6 +12,11 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.BuildOutput
 {
     public class FilePackageUpdater : IDependencyUpdater
     {
+        /// <summary>
+        /// Allow this updater to handle any type of line ending.
+        /// </summary>
+        private static char[] NewlineChars = { '\r', '\n' };
+
         public string Path { get; set; }
 
         public string PackageId { get; set; }
@@ -30,7 +35,7 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.BuildOutput
                         Path,
                         content =>
                         {
-                            int firstLineLength = content.IndexOf(Environment.NewLine);
+                            int firstLineLength = content.IndexOfAny(NewlineChars);
                             // Handle files with no newline ending.
                             if (firstLineLength == -1)
                             {
