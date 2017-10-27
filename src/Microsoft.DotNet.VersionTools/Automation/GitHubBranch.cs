@@ -25,5 +25,7 @@ namespace Microsoft.DotNet.VersionTools.Automation
             }
             Project = project;
         }
+
+        public string HeadRef => $"heads/{Name}";
     }
 }

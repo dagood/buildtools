@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.DotNet.VersionTools.Dependencies.Repository;
+using Microsoft.DotNet.VersionTools.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using Microsoft.DotNet.VersionTools.Util;
 
 namespace Microsoft.DotNet.VersionTools.Dependencies.Submodule
 {
@@ -43,26 +43,11 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Submodule
             IEnumerable<IDependencyInfo> dependencyInfos,
             out IEnumerable<IDependencyInfo> usedDependencyInfos)
         {
-            SubmoduleDependencyInfo[] matchingInfos = dependencyInfos
-                .OfType<SubmoduleDependencyInfo>()
-                .Where(info => info.Repository == Repository)
-                .ToArray();
+            RepositoryDependencyInfo matchingInfo = DependencyInfoUtils
+                .FindRepositoryDependencyInfo(dependencyInfos, Repository, Ref);
 
-            if (matchingInfos.Length != 1)
-            {
-                string matchingInfoString = string.Join(", ", matchingInfos.AsEnumerable());
-                int allSubmoduleInfoCount = dependencyInfos.OfType<SubmoduleDependencyInfo>().Count();
+            usedDependencyInfos = new[] { matchingInfo };
 
-                throw new ArgumentException(
-                    $"For {Path}, expected exactly 1 {nameof(SubmoduleDependencyInfo)} " +
-                    $"matching '{Repository}', " +
-                    $"but found {matchingInfos.Length}/{allSubmoduleInfoCount}: " +
-                    $"'{matchingInfoString}'");
-            }
-
-            usedDependencyInfos = matchingInfos;
-
-            SubmoduleDependencyInfo matchingInfo = matchingInfos[0];
             Trace.TraceInformation($"For {Path}, found: {matchingInfo}");
 
             return matchingInfo.Commit;

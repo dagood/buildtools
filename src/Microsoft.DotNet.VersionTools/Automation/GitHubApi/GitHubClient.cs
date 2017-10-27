@@ -53,11 +53,17 @@ namespace Microsoft.DotNet.VersionTools.Automation.GitHubApi
             }
         }
 
+        public Task<GitHubContents> GetGitHubFileAsync(string path, GitHubBranch branch)
+        {
+            return GetGitHubFileAsync(path, branch.Project, branch.HeadRef);
+        }
+
         public async Task<GitHubContents> GetGitHubFileAsync(
             string path,
-            GitHubBranch branch)
+            GitHubProject project,
+            string @ref)
         {
-            string url = $"https://api.github.com/repos/{branch.Project.Segments}/contents/{path}?ref=heads/{branch.Name}";
+            string url = $"https://api.github.com/repos/{project.Segments}/contents/{path}?ref={@ref}";
 
             Trace.TraceInformation($"Getting contents of '{path}' using '{url}'");
 
@@ -67,13 +73,19 @@ namespace Microsoft.DotNet.VersionTools.Automation.GitHubApi
             }
         }
 
+        public Task<string> GetGitHubFileContentsAsync(string path, GitHubBranch branch)
+        {
+            return GetGitHubFileContentsAsync(path, branch.Project, branch.HeadRef);
+        }
+
         public async Task<string> GetGitHubFileContentsAsync(
             string path,
-            GitHubBranch branch)
+            GitHubProject project,
+            string @ref)
         {
             try
             {
-                GitHubContents file = await GetGitHubFileAsync(path, branch);
+                GitHubContents file = await GetGitHubFileAsync(path, project, @ref);
                 return FromBase64(file.Content);
             }
             catch (HttpFailureResponseException ex) when (ex.HttpStatusCode == HttpStatusCode.NotFound)

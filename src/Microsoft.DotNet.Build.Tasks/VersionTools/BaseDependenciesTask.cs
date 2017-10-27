@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.DotNet.VersionTools.Dependencies.Repository;
 
 namespace Microsoft.DotNet.Build.Tasks.VersionTools
 {
@@ -125,11 +126,27 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
                         break;
 
                     case "Submodule":
-                        yield return SubmoduleDependencyInfo.Create(
+                        yield return RepositoryDependencyInfo.CreateForSubmodule(
                             GetRequiredMetadata(info, "Repository"),
                             GetRequiredMetadata(info, "Ref"),
                             GetRequiredMetadata(info, "Path"),
                             remote);
+                        break;
+
+                    case "Repository":
+                        string repository = GetRequiredMetadata(info, "Repository");
+                        string @ref = GetRequiredMetadata(info, "Ref");
+                        if (remote)
+                        {
+                            yield return RepositoryDependencyInfo.CreateRemote(
+                                repository,
+                                @ref);
+                        }
+                        else
+                        {
+                            string commit = GetRequiredMetadata(info, CurrentRefMetadataName);
+                            yield return new RepositoryDependencyInfo(repository, @ref, commit);
+                        }
                         break;
 
                     default:
