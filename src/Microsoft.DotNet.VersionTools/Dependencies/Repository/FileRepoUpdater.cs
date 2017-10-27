@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Microsoft.DotNet.VersionTools.Automation;
 using Microsoft.DotNet.VersionTools.Automation.GitHubApi;
 using Microsoft.DotNet.VersionTools.Util;
@@ -13,8 +14,7 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
 {
     public class FileRepoUpdater : IDependencyUpdater
     {
-        public string Repository { get; set; }
-        public string Ref { get; set; }
+        public string RepositoryIdentity { get; set; }
 
         public string LocalRootDir { get; set; }
         public string RemoteRootDir { get; set; }
@@ -26,8 +26,9 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
         public IEnumerable<DependencyUpdateTask> GetUpdateTasks(
             IEnumerable<IDependencyInfo> dependencyInfos)
         {
-            RepositoryDependencyInfo matchingInfo = DependencyInfoUtils
-                .FindRepositoryDependencyInfo(dependencyInfos, Repository, Ref);
+            RepositoryDependencyInfo matchingInfo = dependencyInfos
+                .OfType<RepositoryDependencyInfo>()
+                .Single(info => string.Equals(info.Identity, RepositoryIdentity, StringComparison.OrdinalIgnoreCase));
 
             var updateTasks = new List<DependencyUpdateTask>();
 
@@ -41,17 +42,31 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
                         remotePath = string.Join("/", RemoteRootDir, path);
                     }
 
-                    var remoteProject = GitHubProject.ParseUrl(Repository);
+                    var remoteProject = GitHubProject.ParseUrl(matchingInfo.Repository);
 
                     var remoteContents = client.GetGitHubFileContentsAsync(
                         remotePath,
                         remoteProject,
-                        Ref).Result;
+                        matchingInfo.Ref).Result;
 
                     string fullPath = Path.Combine(LocalRootDir, path);
 
                     updateTasks.Add(new DependencyUpdateTask(
-                        FileUtils.GetUpdateFileContentsTask(fullPath, _ => remoteContents),
+                        FileUtils.GetUpdateFileContentsTask(
+                            fullPath,
+                            localContents =>
+                            {
+                                // Detect current line ending. Depending on the platform and how
+                                // core.autocrlf is configured, this may be CRLF or LF. Instead of
+                                // assuming any particular config, handle both by checking the file
+                                // state on disk and matching it.
+                                if (localContents.Contains("\r\n"))
+                                {
+                                    // Assume that the script is always LF in Git.
+                                    return remoteContents.Replace("\n", "\r\n");
+                                }
+                                return remoteContents;
+                            }),
                         new[] { matchingInfo },
                         new[]
                         {

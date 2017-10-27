@@ -12,6 +12,7 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
     public class RepositoryDependencyInfo : IDependencyInfo
     {
         public static RepositoryDependencyInfo CreateForSubmodule(
+            string identity,
             string repository,
             string @ref,
             string path,
@@ -28,10 +29,11 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
             string commit = GitCommand.SubmoduleStatusCached(path)
                 .Substring(1, 40);
 
-            return new RepositoryDependencyInfo(repository, @ref, commit);
+            return new RepositoryDependencyInfo(identity, repository, @ref, commit);
         }
 
         public static RepositoryDependencyInfo CreateRemote(
+            string identity,
             string repository,
             string @ref,
             string gitWorkingDir = ".")
@@ -60,8 +62,14 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
 
             string commit = remoteRefLines.Single().Split('\t').First();
             Trace.TraceInformation($"Found commit {commit} for '{repository}' at ref '{@ref}'.");
-            return new RepositoryDependencyInfo(repository, @ref, commit);
+            return new RepositoryDependencyInfo(identity, repository, @ref, commit);
         }
+
+        /// <summary>
+        /// An identity that an updater can use to identify which dependency info to use. This can
+        /// avoid having the updater know (and most likely duplicate) Repository and Ref.
+        /// </summary>
+        public string Identity { get; }
 
         /// <summary>
         /// The target repository, in a format that works with commands like "git fetch".
@@ -80,8 +88,16 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
         /// </summary>
         public string Commit { get; }
 
-        public RepositoryDependencyInfo(string repository, string @ref, string commit)
+        public RepositoryDependencyInfo(
+            string identity,
+            string repository,
+            string @ref,
+            string commit)
         {
+            if (identity == null)
+            {
+                throw new ArgumentNullException(nameof(identity));
+            }
             if (repository == null)
             {
                 throw new ArgumentNullException(nameof(repository));
@@ -94,6 +110,7 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
             {
                 throw new ArgumentNullException(nameof(commit));
             }
+            Identity = identity;
             Repository = repository;
             Ref = @ref;
             Commit = commit;

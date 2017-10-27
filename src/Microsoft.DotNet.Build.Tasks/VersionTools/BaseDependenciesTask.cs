@@ -100,8 +100,7 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
                     case "File from repository":
                         yield return new FileRepoUpdater
                         {
-                            Repository = GetRequiredMetadata(step, "Repository"),
-                            Ref = GetRequiredMetadata(step, "Ref"),
+                            RepositoryIdentity = GetRequiredMetadata(step, "RepositoryIdentity"),
                             RelativePaths = GetRequiredMetadata(step, "RelativePaths")
                                 .Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries),
                             LocalRootDir = step.GetMetadata("LocalRootDir"),
@@ -142,6 +141,7 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
 
                     case "Submodule":
                         yield return RepositoryDependencyInfo.CreateForSubmodule(
+                            info.ItemSpec,
                             GetRequiredMetadata(info, "Repository"),
                             GetRequiredMetadata(info, "Ref"),
                             GetRequiredMetadata(info, "Path"),
@@ -154,13 +154,18 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
                         if (remote)
                         {
                             yield return RepositoryDependencyInfo.CreateRemote(
+                                info.ItemSpec,
                                 repository,
                                 @ref);
                         }
                         else
                         {
                             string commit = GetRequiredMetadata(info, CurrentRefMetadataName);
-                            yield return new RepositoryDependencyInfo(repository, @ref, commit);
+                            yield return new RepositoryDependencyInfo(
+                                info.ItemSpec,
+                                repository,
+                                @ref,
+                                commit);
                         }
                         break;
 
