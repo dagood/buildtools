@@ -35,7 +35,7 @@
     <Compile Include="Automation\PullRequestCreator.cs" />
     <Compile Include="Automation\GitHubApi\GitHubApiModel.cs" />
     <Compile Include="Dependencies\DependencyInfoUtils.cs" />
-    <Compile Include="Dependencies\Repository\FileRepoUpdater.cs" />
+    <Compile Include="Dependencies\Repository\ExternalRepoFileUpdater.cs" />
     <Compile Include="Dependencies\Repository\RepositoryDependencyInfo.cs" />
     <Compile Include="Dependencies\BuildOutput\ToolVersionsUpdater.cs" />
     <Compile Include="Dependencies\BuildOutput\FilePackageUpdater.cs" />

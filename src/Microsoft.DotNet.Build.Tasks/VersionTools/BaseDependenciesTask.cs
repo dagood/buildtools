@@ -97,8 +97,8 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
                         };
                         break;
 
-                    case "File from repository":
-                        yield return new FileRepoUpdater
+                    case nameof(ExternalRepoFileUpdater):
+                        yield return new ExternalRepoFileUpdater
                         {
                             RepositoryIdentity = GetRequiredMetadata(step, "RepositoryIdentity"),
                             RelativePaths = GetRequiredMetadata(step, "RelativePaths")
