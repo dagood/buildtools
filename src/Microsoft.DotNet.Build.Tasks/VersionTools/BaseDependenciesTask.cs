@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.DotNet.VersionTools.Automation.GitHubApi;
 using Microsoft.DotNet.VersionTools.Dependencies.Repository;
 
 namespace Microsoft.DotNet.Build.Tasks.VersionTools
@@ -47,7 +48,7 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
         protected Regex CreateXmlUpdateRegex(string elementName, string contentGroupName) =>
             new Regex($@"<{elementName}>(?<{contentGroupName}>.*)</{elementName}>");
 
-        protected IEnumerable<IDependencyUpdater> CreateUpdaters()
+        protected IEnumerable<IDependencyUpdater> CreateUpdaters(GitHubClient client = null)
         {
             if (ProjectJsonFiles != null && ProjectJsonFiles.Any())
             {
@@ -93,6 +94,20 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
                             GetRequiredMetadata(step, "Ref"))
                         {
                             Path = GetRequiredMetadata(step, "Path")
+                        };
+                        break;
+
+                    case "File from repository":
+                        yield return new FileRepoUpdater
+                        {
+                            Repository = GetRequiredMetadata(step, "Repository"),
+                            Ref = GetRequiredMetadata(step, "Ref"),
+                            RelativePaths = GetRequiredMetadata(step, "RelativePaths")
+                                .Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries),
+                            LocalRootDir = step.GetMetadata("LocalRootDir"),
+                            RemoteRootDir = step.GetMetadata("RemoteRootDir"),
+
+                            ProvidedClient = client
                         };
                         break;
 

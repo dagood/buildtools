@@ -21,7 +21,7 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
 
         public string[] RelativePaths { get; set; }
 
-        private GitHubClient ProvidedClient { get; set; }
+        public GitHubClient ProvidedClient { get; set; }
 
         public IEnumerable<DependencyUpdateTask> GetUpdateTasks(
             IEnumerable<IDependencyInfo> dependencyInfos)
@@ -35,7 +35,12 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
             {
                 foreach (string path in RelativePaths)
                 {
-                    string remotePath = string.Join("/", RemoteRootDir, path);
+                    string remotePath = path;
+                    if (!string.IsNullOrEmpty(RemoteRootDir))
+                    {
+                        remotePath = string.Join("/", RemoteRootDir, path);
+                    }
+
                     var remoteProject = GitHubProject.ParseUrl(Repository);
 
                     var remoteContents = client.GetGitHubFileContentsAsync(
@@ -50,7 +55,7 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
                         new[] { matchingInfo },
                         new[]
                         {
-                            $"Updated {fullPath} to {remoteProject.Segments}/{remotePath} at {Ref}"
+                            $"'{fullPath}' must have contents of {matchingInfo} '{remotePath}'"
                         }));
                 }
             });

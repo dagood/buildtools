@@ -74,7 +74,7 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
                 .Result.Object.Sha;
 
             DependencyUpdateResults updateResults = DependencyUpdateUtils.Update(
-                CreateUpdaters().ToArray(),
+                CreateUpdaters(client).ToArray(),
                 CreateDependencyInfos(true, versionsCommitHash).ToArray());
 
             // Update CurrentRef for each applicable build info used.
