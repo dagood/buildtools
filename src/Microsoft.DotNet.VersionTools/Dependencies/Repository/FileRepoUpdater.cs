@@ -1,10 +1,13 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
 using Microsoft.DotNet.VersionTools.Automation;
 using Microsoft.DotNet.VersionTools.Automation.GitHubApi;
+using Microsoft.DotNet.VersionTools.Util;
 
 namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
 {
@@ -26,21 +29,33 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
             RepositoryDependencyInfo matchingInfo = DependencyInfoUtils
                 .FindRepositoryDependencyInfo(dependencyInfos, Repository, Ref);
 
+            var updateTasks = new List<DependencyUpdateTask>();
+
             UseClient(client =>
             {
                 foreach (string path in RelativePaths)
                 {
-                    var remoteContents = client.GetGitHubFileContentsAsync(
-                        string.Join("/", RemoteRootDir, path),
-                        GitHubProject.ParseUrl(Repository),
-                        Ref)
-                        .Result;
+                    string remotePath = string.Join("/", RemoteRootDir, path);
+                    var remoteProject = GitHubProject.ParseUrl(Repository);
 
-                    
+                    var remoteContents = client.GetGitHubFileContentsAsync(
+                        remotePath,
+                        remoteProject,
+                        Ref).Result;
+
+                    string fullPath = Path.Combine(LocalRootDir, path);
+
+                    updateTasks.Add(new DependencyUpdateTask(
+                        FileUtils.GetUpdateFileContentsTask(fullPath, _ => remoteContents),
+                        new[] { matchingInfo },
+                        new[]
+                        {
+                            $"Updated {fullPath} to {remoteProject.Segments}/{remotePath} at {Ref}"
+                        }));
                 }
             });
 
-            matchingInfo.Commit;
+            return updateTasks;
         }
 
         private void UseClient(Action<GitHubClient> action)
