@@ -116,6 +116,21 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
                                 .EnsureSuccessful();
                         });
 
+                    var modeResult = GitCommand.Create("ls-files", "--cached", "--", fullPath)
+                        .CaptureStdOut()
+                        .Execute();
+                    modeResult.EnsureSuccessful();
+
+                    string mode = modeResult.StdOut.Substring(0, 6);
+
+                    if ((mode == GitObject.ModeFile || mode == GitObject.ModeExecutable) &&
+                        mode != remoteObject.Mode)
+                    {
+                        GitCommand.Create("update-index", "--add", $"--chmod={chmod}")
+                            .Execute()
+                            .EnsureSuccessful();
+                    }
+
                     if (fileUpdate != null)
                     {
                         updateTasks.Add(new DependencyUpdateTask(
