@@ -116,20 +116,49 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
                                 .EnsureSuccessful();
                         });
 
-                    var modeResult = GitCommand.Create("ls-files", "--cached", "--", fullPath)
-                        .CaptureStdOut()
-                        .Execute();
-                    modeResult.EnsureSuccessful();
-
-                    string mode = modeResult.StdOut.Substring(0, 6);
-
-                    if ((mode == GitObject.ModeFile || mode == GitObject.ModeExecutable) &&
-                        mode != remoteObject.Mode)
+                    if (File.Exists(fullPath))
                     {
-                        GitCommand.Create("update-index", "--add", $"--chmod={chmod}")
-                            .Execute()
-                            .EnsureSuccessful();
+                        var modeResult = GitCommand.Create("ls-files", "--cached", "--", fullPath)
+                            .CaptureStdOut()
+                            .Execute();
+                        modeResult.EnsureSuccessful();
+
+                        string mode = modeResult.StdOut.Substring(0, 6);
+
+                        Action contentUpdateTask = FileUtils.GetUpdateFileContentsTask(
+                            fullPath,
+                            localContents =>
+                            {
+                                // Detect current line ending. Depending on the platform and how
+                                // core.autocrlf is configured, this may be CRLF or LF. Instead of
+                                // assuming any particular config, handle both by checking the file
+                                // state on disk and matching it.
+                                if (localContents.Contains("\r\n"))
+                                {
+                                    // Assume that the script is always LF in Git.
+                                    return remoteContents.Replace("\n", "\r\n");
+                                }
+                                return remoteContents;
+                            });
+
+                        if ((mode == GitObject.ModeFile || mode == GitObject.ModeExecutable) &&
+                            mode != remoteObject.Mode)
+                        {
+                            string chmod = remoteObject.Mode == GitObject.ModeExecutable ? "+x" : "-x";
+
+                            GitCommand.Create("update-index", "--add", $"--chmod={chmod}")
+                                .Execute()
+                                .EnsureSuccessful();
+                        }
                     }
+                    else
+                    {
+
+                    }
+
+
+
+
 
                     if (fileUpdate != null)
                     {
