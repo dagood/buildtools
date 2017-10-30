@@ -7,6 +7,7 @@ using Microsoft.DotNet.VersionTools.Automation.GitHubApi;
 using Microsoft.DotNet.VersionTools.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -32,33 +33,60 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
 
             var updateTasks = new List<DependencyUpdateTask>();
 
+            var treeCache = new Dictionary<string, GitTree>();
+
             UseClient(client =>
             {
                 foreach (string path in RelativePaths)
                 {
-                    string remotePath = path;
-                    if (!string.IsNullOrEmpty(RemoteRootDir))
-                    {
-                        remotePath = string.Join("/", RemoteRootDir, path);
-                    }
+                    string[] remoteDirSegments = RemoteRootDir?.Split('/', '\\') ?? new string[0];
+                    string[] remotePathSegments = remoteDirSegments
+                        .Concat(path.Split('/', '\\'))
+                        .ToArray();
+
+                    string remotePath = string.Join("/", remotePathSegments);
 
                     var remoteProject = GitHubProject.ParseUrl(matchingInfo.Repository);
 
-                    var remoteContents = client.GetGitHubFileContentsAsync(
+                    GitHubContents remoteFile = client.GetGitHubFileAsync(
                         remotePath,
                         remoteProject,
                         matchingInfo.Ref).Result;
 
-                    string fullPath = Path.Combine(LocalRootDir, path);
+                    GitCommit remoteCommit = client.GetCommitAsync(
+                        remoteProject,
+                        matchingInfo.Commit).Result;
 
-                    if (!File.Exists(fullPath))
-                    {
-                        throw new FileNotFoundException(
-                            $"File to update not found. {nameof(ExternalRepoFileUpdater)} is currently " +
-                            "unable to create files, because the file modes and line endings are " +
-                            "difficult to seed correctly cross-platform.",
-                            fullPath);
-                    }
+                    treeCache[string.Empty] = client.GetTreeAsync(remoteProject, remoteCommit.Tree.Sha).Result;
+
+                    string remoteDir = remoteDirSegments.Aggregate(
+                        string.Empty,
+                        (acc, segment) =>
+                        {
+                            GitTree parent = treeCache[acc];
+
+                            Trace.TraceInformation($"Looking in {acc} for {segment} ({parent.Url})");
+
+                            GitObject gitObject = parent.Tree
+                                .Single(o =>
+                                    string.Equals(o.Path, segment, StringComparison.OrdinalIgnoreCase) &&
+                                    o.Type == GitObject.TypeTree);
+
+                            GitTree gitTree = client.GetTreeAsync(remoteProject, gitObject.Sha).Result;
+
+                            string s = acc + "/" + segment;
+                            treeCache[s] = gitTree;
+                            return s;
+                        });
+
+                    GitObject remoteObject = treeCache[remoteDir].Tree
+                        .Single(o =>
+                            string.Equals(o.Path, remotePathSegments.Last(), StringComparison.OrdinalIgnoreCase) &&
+                            o.Type == GitObject.TypeBlob);
+
+                    string remoteContents = GitHubClient.FromBase64(remoteFile.Content);
+
+                    string fullPath = Path.Combine(LocalRootDir, path);
 
                     Action fileUpdate = FileUtils.GetUpdateFileContentsTask(
                         fullPath,
@@ -74,6 +102,18 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
                                 return remoteContents.Replace("\n", "\r\n");
                             }
                             return remoteContents;
+                        },
+                        () =>
+                        {
+                            File.WriteAllText(fullPath, remoteContents);
+
+                            string chmod = remoteObject.Mode == GitObject.ModeExecutable
+                                ? "+x"
+                                : "-x";
+
+                            GitCommand.Create("update-index", "--add", $"--chmod={chmod}")
+                                .Execute()
+                                .EnsureSuccessful();
                         });
 
                     if (fileUpdate != null)
@@ -108,3 +148,4 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
         }
     }
 }
+

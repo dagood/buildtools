@@ -297,6 +297,17 @@ namespace Microsoft.DotNet.VersionTools.Automation.GitHubApi
             }
         }
 
+        public async Task<GitTree> GetTreeAsync(GitHubProject project, string tree)
+        {
+            string url = $"https://api.github.com/repos/{project.Segments}/git/trees/{tree}";
+
+            using (HttpResponseMessage response = await _httpClient.GetAsync(url))
+            {
+                Trace.TraceInformation($"Getting info about tree {tree} in {project.Segments}");
+                return await DeserializeSuccessfulAsync<GitTree>(response);
+            }
+        }
+
         public async Task<GitTree> PostTreeAsync(GitHubProject project, string baseTree, GitObject[] tree)
         {
             EnsureAuthenticated();
@@ -417,7 +428,7 @@ namespace Microsoft.DotNet.VersionTools.Automation.GitHubApi
             return responseContent["html_url"].ToString();
         }
 
-        private static string ToBase64(string value) => Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
-        private static string FromBase64(string value) => Encoding.UTF8.GetString(Convert.FromBase64String(value));
+        public static string ToBase64(string value) => Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+        public static string FromBase64(string value) => Encoding.UTF8.GetString(Convert.FromBase64String(value));
     }
 }

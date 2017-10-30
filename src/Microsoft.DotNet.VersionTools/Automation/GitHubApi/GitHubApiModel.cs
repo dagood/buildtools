@@ -70,6 +70,7 @@ namespace Microsoft.DotNet.VersionTools.Automation.GitHubApi
         public string Sha { get; set; }
         public GitCommitUser Author { get; set; }
         public GitCommitUser Committer { get; set; }
+        public GitTree Tree { get; set; }
         public string Message { get; set; }
         [JsonProperty("html_url")]
         public string HtmlUrl { get; set; }
@@ -95,13 +96,17 @@ namespace Microsoft.DotNet.VersionTools.Automation.GitHubApi
     public class GitTree
     {
         public string Sha { get; set; }
+        public string Url { get; set; }
+        public GitObject[] Tree { get; set; }
     }
 
     public class GitObject
     {
         public const string TypeBlob = "blob";
+        public const string TypeTree = "tree";
 
         public const string ModeFile = "100644";
+        public const string ModeExecutable = "100755";
 
         public string Path { get; set; }
         public string Mode { get; set; }

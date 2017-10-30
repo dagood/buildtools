@@ -17,20 +17,33 @@ namespace Microsoft.DotNet.VersionTools.Util
         /// </summary>
         /// <param name="path">Path of the file to change.</param>
         /// <param name="replacement">A function that takes file contents as input and returns the desired replacement.</param>
-        public static Action GetUpdateFileContentsTask(string path, Func<string, string> replacement)
+        public static Action GetUpdateFileContentsTask(
+            string path,
+            Func<string, string> replacement,
+            Action initializeFile = null)
         {
-            string contents;
-            Encoding encoding;
+            bool exists = File.Exists(path);
+            string contents = string.Empty;
+            Encoding encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
-            // Attempt to preserve the file's encoding, using a UTF-8 encoding with no BOM if the
-            // file's encoding cannot be detected. 
-            using (StreamReader reader = new StreamReader(
-                new FileStream(path, FileMode.Open, FileAccess.Read),
-                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
-                detectEncodingFromByteOrderMarks: true))
+            if (exists)
             {
-                contents = reader.ReadToEnd();
-                encoding = reader.CurrentEncoding;
+                // Attempt to preserve the file's encoding, using a UTF-8 encoding with no BOM if
+                // the file's encoding cannot be detected. 
+                using (StreamReader reader = new StreamReader(
+                    new FileStream(path, FileMode.Open, FileAccess.Read),
+                    encoding,
+                    detectEncodingFromByteOrderMarks: true))
+                {
+                    contents = reader.ReadToEnd();
+                    encoding = reader.CurrentEncoding;
+                }
+            }
+            else if (initializeFile == null)
+            {
+                throw new FileNotFoundException(
+                    "File not found, but initializing it is not possible.",
+                    path);
             }
 
             string newContents = replacement(contents);
@@ -39,6 +52,10 @@ namespace Microsoft.DotNet.VersionTools.Util
             {
                 return () =>
                 {
+                    if (!exists)
+                    {
+                        initializeFile();
+                    }
                     Trace.TraceInformation($"Writing changes to {path}");
                     File.WriteAllText(path, newContents, encoding);
                 };
