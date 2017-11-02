@@ -88,82 +88,14 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
 
                     string fullPath = Path.Combine(LocalRootDir, path);
 
-                    Action fileUpdate = FileUtils.GetUpdateFileContentsTask(
-                        fullPath,
-                        localContents =>
-                        {
-                            // Detect current line ending. Depending on the platform and how
-                            // core.autocrlf is configured, this may be CRLF or LF. Instead of
-                            // assuming any particular config, handle both by checking the file
-                            // state on disk and matching it.
-                            if (localContents.Contains("\r\n"))
-                            {
-                                // Assume that the script is always LF in Git.
-                                return remoteContents.Replace("\n", "\r\n");
-                            }
-                            return remoteContents;
-                        },
-                        () =>
-                        {
-                            File.WriteAllText(fullPath, remoteContents);
+                    Action task = File.Exists(fullPath)
+                        ? UpdateTask(fullPath, remoteContents, remoteObject)
+                        : CreateTask(fullPath, remoteContents, remoteObject);
 
-                            string chmod = remoteObject.Mode == GitObject.ModeExecutable
-                                ? "+x"
-                                : "-x";
-
-                            GitCommand.Create("update-index", "--add", $"--chmod={chmod}")
-                                .Execute()
-                                .EnsureSuccessful();
-                        });
-
-                    if (File.Exists(fullPath))
-                    {
-                        var modeResult = GitCommand.Create("ls-files", "--cached", "--", fullPath)
-                            .CaptureStdOut()
-                            .Execute();
-                        modeResult.EnsureSuccessful();
-
-                        string mode = modeResult.StdOut.Substring(0, 6);
-
-                        Action contentUpdateTask = FileUtils.GetUpdateFileContentsTask(
-                            fullPath,
-                            localContents =>
-                            {
-                                // Detect current line ending. Depending on the platform and how
-                                // core.autocrlf is configured, this may be CRLF or LF. Instead of
-                                // assuming any particular config, handle both by checking the file
-                                // state on disk and matching it.
-                                if (localContents.Contains("\r\n"))
-                                {
-                                    // Assume that the script is always LF in Git.
-                                    return remoteContents.Replace("\n", "\r\n");
-                                }
-                                return remoteContents;
-                            });
-
-                        if ((mode == GitObject.ModeFile || mode == GitObject.ModeExecutable) &&
-                            mode != remoteObject.Mode)
-                        {
-                            string chmod = remoteObject.Mode == GitObject.ModeExecutable ? "+x" : "-x";
-
-                            GitCommand.Create("update-index", "--add", $"--chmod={chmod}")
-                                .Execute()
-                                .EnsureSuccessful();
-                        }
-                    }
-                    else
-                    {
-
-                    }
-
-
-
-
-
-                    if (fileUpdate != null)
+                    if (task != null)
                     {
                         updateTasks.Add(new DependencyUpdateTask(
-                            fileUpdate,
+                            task,
                             new[] { matchingInfo },
                             new[]
                             {
@@ -189,6 +121,88 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
                     action(client);
                 }
             }
+        }
+
+        private static Action UpdateTask(
+            string fullPath,
+            string remoteContents,
+            GitObject remoteObject)
+        {
+            var modeResult = GitCommand.Create("ls-files", "--cached", "--", fullPath)
+                .CaptureStdOut()
+                .Execute();
+            modeResult.EnsureSuccessful();
+
+            string mode = modeResult.StdOut.Substring(0, 6);
+
+            Trace.TraceInformation($"File '{fullPath}' has mode '{mode}'.");
+
+            Action contentUpdateTask = FileUtils.GetUpdateFileContentsTask(
+                fullPath,
+                localContents =>
+                {
+                    // Detect current line ending. Depending on the platform and how core.autocrlf
+                    // is configured, this may be CRLF or LF. Instead of assuming any particular
+                    // config, handle both by checking the file state on disk and matching it.
+                    if (localContents.Contains("\r\n"))
+                    {
+                        // Assume that the script is always LF in Git.
+                        return remoteContents.Replace("\n", "\r\n");
+                    }
+                    return remoteContents;
+                });
+
+            Action modeUpdateTask = null;
+
+            if ((mode == GitObject.ModeFile || mode == GitObject.ModeExecutable) &&
+                mode != remoteObject.Mode)
+            {
+                string chmod = remoteObject.Mode == GitObject.ModeExecutable ? "+x" : "-x";
+
+                Trace.TraceInformation($"Updating '{fullPath}' index to chmod {chmod}.");
+
+                modeUpdateTask = () =>
+                {
+                    GitCommand.Create("update-index", "--add", $"--chmod={chmod}", "--", fullPath)
+                        .Execute()
+                        .EnsureSuccessful();
+                };
+            }
+
+            Action[] tasks = new[] { contentUpdateTask, modeUpdateTask }
+                .Where(task => task != null)
+                .ToArray();
+
+            if (tasks.Any())
+            {
+                return () =>
+                {
+                    foreach (var action in tasks)
+                    {
+                        action();
+                    }
+                };
+            }
+            return null;
+        }
+
+        private static Action CreateTask(
+            string fullPath,
+            string remoteContents,
+            GitObject remoteObject)
+        {
+            return () =>
+            {
+                File.WriteAllText(fullPath, remoteContents);
+
+                string chmod = remoteObject.Mode == GitObject.ModeExecutable ? "+x" : "-x";
+
+                Trace.TraceInformation($"Setting '{fullPath}' index to chmod {chmod}.");
+
+                GitCommand.Create("update-index", "--add", $"--chmod={chmod}", "--", fullPath)
+                    .Execute()
+                    .EnsureSuccessful();
+            };
         }
     }
 }
