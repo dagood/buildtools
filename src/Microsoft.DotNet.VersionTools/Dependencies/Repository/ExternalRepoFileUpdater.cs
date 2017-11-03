@@ -133,6 +133,13 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
                 .Execute();
             modeResult.EnsureSuccessful();
 
+            if (modeResult.StdOut.Length < 6)
+            {
+                throw new FileNotFoundException(
+                    "'git ls-files --cached' returned no data about the file, indicating it isn't in the index.",
+                    fullPath);
+            }
+
             string mode = modeResult.StdOut.Substring(0, 6);
 
             Trace.TraceInformation($"File '{fullPath}' has mode '{mode}'.");
