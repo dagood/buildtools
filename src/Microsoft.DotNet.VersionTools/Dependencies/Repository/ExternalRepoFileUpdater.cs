@@ -51,7 +51,9 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
                     GitHubContents remoteFile = client.GetGitHubFileAsync(
                         remotePath,
                         remoteProject,
-                        matchingInfo.Ref).Result;
+                        matchingInfo.Commit).Result;
+
+                    string remoteContents = GitHubClient.FromBase64(remoteFile.Content);
 
                     GitCommit remoteCommit = client.GetCommitAsync(
                         remoteProject,
@@ -83,8 +85,6 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
                         .Single(o =>
                             string.Equals(o.Path, remotePathSegments.Last(), StringComparison.OrdinalIgnoreCase) &&
                             o.Type == GitObject.TypeBlob);
-
-                    string remoteContents = GitHubClient.FromBase64(remoteFile.Content);
 
                     string fullPath = Path.Combine(LocalRootDir, path);
 
