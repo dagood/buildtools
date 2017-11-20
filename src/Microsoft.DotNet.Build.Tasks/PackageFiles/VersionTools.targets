@@ -112,7 +112,9 @@
     <UpdateDependencies DependencyInfo="@(DependencyInfo)"
                         ProjectJsonFiles="@(ProjectJsonFiles)"
                         UpdateStep="@(UpdateStep)"
-                        BuildInfoCacheDir="$(BuildInfoCacheDir)" />
+                        BuildInfoCacheDir="$(BuildInfoCacheDir)"
+                        GitHubAuthToken="$(GitHubAuthToken)"
+                        GitHubUser="$(GitHubUser)"/>
   </Target>
 
   <Target Name="VerifyDependencies"
@@ -124,7 +126,9 @@
     <VerifyDependencies DependencyInfo="@(DependencyInfo)"
                         ProjectJsonFiles="@(ProjectJsonFiles)"
                         UpdateStep="@(UpdateStep)"
-                        BuildInfoCacheDir="$(BuildInfoCacheDir)" />
+                        BuildInfoCacheDir="$(BuildInfoCacheDir)"
+                        GitHubAuthToken="$(GitHubAuthToken)"
+                        GitHubUser="$(GitHubUser)" />
 
     <Message Importance="High" Text="[$([System.DateTime]::Now.ToString('HH:mm:ss.ff'))] Verifying all auto-upgradeable dependencies... Done." />
   </Target>

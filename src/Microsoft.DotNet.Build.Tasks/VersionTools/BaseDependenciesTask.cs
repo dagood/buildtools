@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.DotNet.VersionTools.Automation;
 using Microsoft.DotNet.VersionTools.Automation.GitHubApi;
 using Microsoft.DotNet.VersionTools.Dependencies.Repository;
 
@@ -37,9 +38,34 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
 
         public string BuildInfoCacheDir { get; set; }
 
+        /// <summary>
+        /// If provided, GitHub authentication info is used to fetch remote information. The
+        /// anonymous user rate limit is small.
+        /// </summary>
+        public string GitHubAuthToken { get; set; }
+        public string GitHubUser { get; set; }
+
+        protected GitHubClient GitHubClient { get; private set; }
+
         public override bool Execute()
         {
-            Trace.Listeners.MsBuildListenedInvoke(Log, TraceListenedExecute);
+            GitHubAuth auth = null;
+            if (string.IsNullOrEmpty(GitHubAuthToken))
+            {
+                Log.LogMessage(
+                    MessageImportance.Low,
+                    $"No value for '{nameof(GitHubAuthToken)}'. " +
+                    "Accessing GitHub API anonymously if necessary.");
+            }
+            else
+            {
+                auth = new GitHubAuth(GitHubAuthToken, GitHubUser);
+            }
+
+            using (GitHubClient = new GitHubClient(auth))
+            {
+                Trace.Listeners.MsBuildListenedInvoke(Log, TraceListenedExecute);
+            }
             return !Log.HasLoggedErrors;
         }
 
@@ -48,7 +74,7 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
         protected Regex CreateXmlUpdateRegex(string elementName, string contentGroupName) =>
             new Regex($@"<{elementName}>(?<{contentGroupName}>.*)</{elementName}>");
 
-        protected IEnumerable<IDependencyUpdater> CreateUpdaters(GitHubClient client = null)
+        protected IEnumerable<IDependencyUpdater> CreateUpdaters()
         {
             if (ProjectJsonFiles != null && ProjectJsonFiles.Any())
             {
@@ -106,7 +132,7 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
                             LocalRootDir = step.GetMetadata("LocalRootDir"),
                             RemoteRootDir = step.GetMetadata("RemoteRootDir"),
 
-                            ProvidedClient = client
+                            ProvidedClient = GitHubClient
                         };
                         break;
 

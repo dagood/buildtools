@@ -4,7 +4,6 @@
 
 using Microsoft.Build.Framework;
 using Microsoft.DotNet.VersionTools.Automation;
-using Microsoft.DotNet.VersionTools.Automation.GitHubApi;
 using Microsoft.DotNet.VersionTools.Util;
 using System;
 using System.Linq;
@@ -16,14 +15,6 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
     {
         public string CurrentRefXmlPath { get; set; }
 
-        /// <summary>
-        /// If provided, GitHub authentication info is used to fetch the remote dotnet/versions
-        /// commit. The anonymous user rate limit is small, and this can be used to use an account's
-        /// quota instead. The "...AndSubmitPullRequest" subclass also uses this to create the PR.
-        /// </summary>
-        public string GitHubAuthToken { get; set; }
-        public string GitHubUser { get; set; }
-
         [Output]
         public bool MadeChanges { get; set; }
 
@@ -32,49 +23,32 @@ namespace Microsoft.DotNet.Build.Tasks.VersionTools
 
         protected override void TraceListenedExecute()
         {
-            GitHubAuth auth = null;
+            DependencyUpdateResults updateResults = UpdateToRemote();
 
-            if (string.IsNullOrEmpty(GitHubAuthToken))
+            MadeChanges = updateResults.ChangesDetected();
+            SuggestedCommitMessage = updateResults.GetSuggestedCommitMessage();
+
+            if (MadeChanges)
             {
                 Log.LogMessage(
-                    MessageImportance.Low,
-                    $"No value for '{nameof(GitHubAuthToken)}'. " +
-                    "Accessing GitHub API anonymously.");
+                    MessageImportance.Normal,
+                    $"Suggested commit message: '{SuggestedCommitMessage}'");
             }
             else
             {
-                auth = new GitHubAuth(GitHubAuthToken, GitHubUser);
-            }
-
-            using (var client = new GitHubClient(auth))
-            {
-                DependencyUpdateResults updateResults = UpdateToRemote(client);
-
-                MadeChanges = updateResults.ChangesDetected();
-                SuggestedCommitMessage = updateResults.GetSuggestedCommitMessage();
-
-                if (MadeChanges)
-                {
-                    Log.LogMessage(
-                        MessageImportance.Normal,
-                        $"Suggested commit message: '{SuggestedCommitMessage}'");
-                }
-                else
-                {
-                    Log.LogMessage(MessageImportance.Normal, "No changes performed.");
-                }
+                Log.LogMessage(MessageImportance.Normal, "No changes performed.");
             }
         }
 
-        protected DependencyUpdateResults UpdateToRemote(GitHubClient client)
+        protected DependencyUpdateResults UpdateToRemote()
         {
             // Use the commit hash of the remote dotnet/versions repo master branch.
-            string versionsCommitHash = client
+            string versionsCommitHash = GitHubClient
                 .GetReferenceAsync(new GitHubProject("versions", "dotnet"), "heads/master")
                 .Result.Object.Sha;
 
             DependencyUpdateResults updateResults = DependencyUpdateUtils.Update(
-                CreateUpdaters(client).ToArray(),
+                CreateUpdaters().ToArray(),
                 CreateDependencyInfos(true, versionsCommitHash).ToArray());
 
             // Update CurrentRef for each applicable build info used.

@@ -88,20 +88,13 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
 
                     string fullPath = Path.Combine(LocalRootDir, path);
 
-                    Action task = File.Exists(fullPath)
-                        ? UpdateTask(fullPath, remoteContents, remoteObject)
-                        : CreateTask(fullPath, remoteContents, remoteObject);
+                    string localMode = GetGitCachedFileMode(fullPath);
 
-                    if (task != null)
-                    {
-                        updateTasks.Add(new DependencyUpdateTask(
-                            task,
-                            new[] { matchingInfo },
-                            new[]
-                            {
-                                $"'{fullPath}' must have contents of '{remotePath}' at {matchingInfo}."
-                            }));
-                    }
+                    var tasks = localMode == null
+                        ? CreateTask(matchingInfo, fullPath, remoteContents, remoteObject)
+                        : UpdateTasks(matchingInfo, fullPath, localMode, remoteContents, remoteObject);
+
+                    updateTasks.AddRange(tasks);
                 }
             });
 
@@ -123,27 +116,13 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
             }
         }
 
-        private static Action UpdateTask(
+        private static IEnumerable<DependencyUpdateTask> UpdateTasks(
+            IDependencyInfo info,
             string fullPath,
+            string localMode,
             string remoteContents,
             GitObject remoteObject)
         {
-            var modeResult = GitCommand.Create("ls-files", "--cached", "--", fullPath)
-                .CaptureStdOut()
-                .Execute();
-            modeResult.EnsureSuccessful();
-
-            if (modeResult.StdOut.Length < 6)
-            {
-                throw new FileNotFoundException(
-                    "'git ls-files --cached' returned no data about the file, indicating it isn't in the index.",
-                    fullPath);
-            }
-
-            string mode = modeResult.StdOut.Substring(0, 6);
-
-            Trace.TraceInformation($"File '{fullPath}' has mode '{mode}'.");
-
             Action contentUpdateTask = FileUtils.GetUpdateFileContentsTask(
                 fullPath,
                 localContents =>
@@ -159,57 +138,84 @@ namespace Microsoft.DotNet.VersionTools.Dependencies.Repository
                     return remoteContents;
                 });
 
-            Action modeUpdateTask = null;
-
-            if ((mode == GitObject.ModeFile || mode == GitObject.ModeExecutable) &&
-                mode != remoteObject.Mode)
+            if (contentUpdateTask != null)
             {
-                string chmod = remoteObject.Mode == GitObject.ModeExecutable ? "+x" : "-x";
-
-                Trace.TraceInformation($"Updating '{fullPath}' index to chmod {chmod}.");
-
-                modeUpdateTask = () =>
-                {
-                    GitCommand.Create("update-index", "--add", $"--chmod={chmod}", "--", fullPath)
-                        .Execute()
-                        .EnsureSuccessful();
-                };
-            }
-
-            Action[] tasks = new[] { contentUpdateTask, modeUpdateTask }
-                .Where(task => task != null)
-                .ToArray();
-
-            if (tasks.Any())
-            {
-                return () =>
-                {
-                    foreach (var action in tasks)
+                yield return new DependencyUpdateTask(
+                    contentUpdateTask,
+                    new[] { info },
+                    new[]
                     {
-                        action();
-                    }
-                };
+                        $"'{fullPath}' must have contents of '{remoteObject.Path}' at {info}"
+                    });
             }
-            return null;
+
+            if (localMode != remoteObject.Mode)
+            {
+                yield return new DependencyUpdateTask(
+                    () => GitUpdateIndex(fullPath, remoteObject.Mode),
+                    new[] { info },
+                    new[]
+                    {
+                        $"'{fullPath}' must have mode {remoteObject.Mode} " +
+                        $"of '{remoteObject.Path}' at {info}"
+                    });
+            }
         }
 
-        private static Action CreateTask(
+        private static IEnumerable<DependencyUpdateTask> CreateTask(
+            IDependencyInfo info,
             string fullPath,
             string remoteContents,
             GitObject remoteObject)
         {
-            return () =>
+            yield return new DependencyUpdateTask(
+                () =>
+                {
+                    Trace.TraceInformation($"Creating new file '{fullPath}'.");
+                    File.WriteAllText(fullPath, remoteContents);
+
+                    GitUpdateIndex(fullPath, remoteObject.Mode);
+                },
+                new[] { info },
+                new[]
+                {
+                    $"'{fullPath}' must exist with contents " +
+                    $"'{remoteObject.Path}' ({remoteObject.Mode}) at {info}"
+                });
+        }
+
+        private static string GetGitCachedFileMode(string path)
+        {
+            var modeResult = GitCommand.Create("ls-files", "--stage", "--", path)
+                .CaptureStdOut()
+                .Execute();
+            modeResult.EnsureSuccessful();
+
+            if (modeResult.StdOut.Length < 6)
             {
-                File.WriteAllText(fullPath, remoteContents);
+                // ls-files returned no data about the file, indicating it isn't in the index.
+                Trace.TraceInformation(
+                    $"ls-files returned no mode for '{path}'. Stdout: '{modeResult.StdOut}'");
+                return null;
+            }
 
-                string chmod = remoteObject.Mode == GitObject.ModeExecutable ? "+x" : "-x";
+            string mode = modeResult.StdOut.Substring(0, 6);
+            Trace.TraceInformation($"ls-files shows mode '{mode}' for path '{path}'");
+            return mode;
+        }
 
-                Trace.TraceInformation($"Setting '{fullPath}' index to chmod {chmod}.");
+        private static void GitUpdateIndex(
+            string fullPath,
+            string mode)
+        {
+            string chmod = mode == GitObject.ModeExecutable ? "+x" : "-x";
 
-                GitCommand.Create("update-index", "--add", $"--chmod={chmod}", "--", fullPath)
-                    .Execute()
-                    .EnsureSuccessful();
-            };
+            Trace.TraceInformation(
+                $"Setting '{fullPath}' to mode {mode} (chmod {chmod}) in index.");
+
+            GitCommand.Create("update-index", "--add", $"--chmod={chmod}", "--", fullPath)
+                .Execute()
+                .EnsureSuccessful();
         }
     }
 }
