@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Build.Framework;
+using Microsoft.DotNet.Build.CloudTestTasks;
 using Microsoft.WindowsAzure.Storage;
 using Newtonsoft.Json.Linq;
 using Sleet;
@@ -13,7 +14,9 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using NuGet.Packaging.Core;
 using MSBuild = Microsoft.Build.Utilities;
+using CloudTestTasks = Microsoft.DotNet.Build.CloudTestTasks;
 
 namespace Microsoft.DotNet.Build.Tasks.Feed
 {
@@ -25,6 +28,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
         private const string feedRegex = @"(?<feedurl>https:\/\/(?<accountname>[^\.-]+)(?<domain>[^\/]*)\/((?<token>[a-zA-Z0-9+\/]*?\/\d{4}-\d{2}-\d{2})\/)?(?<containername>[^\/]+)\/(?<relativepath>.*\/)?)index\.json";
         private string feedUrl;
         private SleetSource source;
+        private bool hasToken = false;
 
         public BlobFeed feed;
 
@@ -39,6 +43,8 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
                 string relativePath = m.Groups["relativepath"].Value;
                 feed = new BlobFeed(accountName, accountKey, containerName, relativePath, Log);
                 feedUrl = m.Groups["feedurl"].Value;
+                hasToken = !string.IsNullOrEmpty(m.Groups["token"].Value);
+
                 source = new SleetSource
                 {
                     Name = feed.ContainerName,
@@ -75,34 +81,16 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
         {
             Log.LogMessage(MessageImportance.Low, $"START pushing items to feed");
 
+            if (!items.Any())
+            {
+                Log.LogMessage("No items to push found in the items list.");
+                return true;
+            }
+
             try
             {
-                // In case the first Push attempt fails with an InvalidOperationException we Init the feed and retry the Push command once.
-                // Sleet internally retries 5 times on each package when the push operation fails so we don't need to retry ourselves.
-                for (int i = 0; i <= 1; i++)
-                {
-                    try
-                    {
-                        bool result = await PushAsync(items.ToList(), allowOverwrite);
-                        return result;
-                    }
-                    catch (InvalidOperationException ex) when (ex.Message.Contains("init"))
-                    {
-                        Log.LogWarning($"Sub-feed {source.FeedSubPath} has not been initialized. Initializing now...");
-                        bool result = await InitAsync();
-
-                        if (result)
-                        {
-                            Log.LogMessage($"Initializing sub-feed {source.FeedSubPath} succeeded!");
-                        }
-                        else
-                        {
-                            Log.LogError($"Initializing sub-feed {source.FeedSubPath} failed!");
-                        }
-                    }
-                }
-
-              return false;
+                bool result = await PushAsync(items, allowOverwrite);
+                return result;
             }
             catch (Exception e)
             {
@@ -110,6 +98,119 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
             }
 
             return !Log.HasLoggedErrors;
+        }
+
+        public async Task UploadAssets(ITaskItem item, SemaphoreSlim clientThrottle, bool allowOverwrite = false)
+        {
+            string relativeBlobPath = item.GetMetadata("RelativeBlobPath");
+
+            if (string.IsNullOrEmpty(relativeBlobPath))
+            {
+                string fileName = Path.GetFileName(item.ItemSpec);
+                string recursiveDir = item.GetMetadata("RecursiveDir");
+                relativeBlobPath = $"{recursiveDir}{fileName}";
+            }
+
+            relativeBlobPath = $"{feed.RelativePath}{relativeBlobPath}".Replace("\\", "/");
+
+            Log.LogMessage($"Uploading {relativeBlobPath}");
+
+            await clientThrottle.WaitAsync();
+
+            try
+            {
+                bool blobExists = false;
+
+                if (!allowOverwrite)
+                {
+                    blobExists = await feed.CheckIfBlobExists(relativeBlobPath);
+                }
+
+                if (allowOverwrite || !blobExists)
+                {
+                    Log.LogMessage($"Uploading {item} to {relativeBlobPath}.");
+                    UploadClient uploadClient = new UploadClient(Log);
+                    await uploadClient.UploadBlockBlobAsync(
+                        CancellationToken,
+                        feed.AccountName,
+                        feed.AccountKey,
+                        feed.ContainerName,
+                        item.ItemSpec,
+                        relativeBlobPath);
+                }
+                else
+                {
+                    Log.LogError($"Item '{item}' already exists in {relativeBlobPath}.");
+                }
+            }
+            catch (Exception exc)
+            {
+                Log.LogError($"Unable to upload to {relativeBlobPath} due to {exc}.");
+                throw;
+            }
+            finally
+            {
+                clientThrottle.Release();
+            }
+        }
+
+        public async Task CreateContainerAsync(IBuildEngine buildEngine, bool publishFlatContainer)
+        {
+            Log.LogMessage($"Creating container {feed.ContainerName}...");
+
+            CreateAzureContainer createContainer = new CreateAzureContainer
+            {
+                AccountKey = feed.AccountKey,
+                AccountName = feed.AccountName,
+                ContainerName = feed.ContainerName,
+                FailIfExists = false,
+                IsPublic = !hasToken,
+                BuildEngine = buildEngine
+            };
+
+            await createContainer.ExecuteAsync();
+
+            Log.LogMessage($"Creating container {feed.ContainerName} succeeded!");
+
+            if (!publishFlatContainer)
+            {
+                try
+                {
+                    bool result = await InitAsync();
+
+                    if (result)
+                    {
+                        Log.LogMessage($"Initializing sub-feed {source.FeedSubPath} succeeded!");
+                    }
+                    else
+                    {
+                        throw new Exception($"Initializing sub-feed {source.FeedSubPath} failed!");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.LogErrorFromException(e);
+                }
+            }
+        }
+
+        public async Task<ISet<PackageIdentity>> GetPackageIdentitiesAsync()
+        {
+            var context = new SleetContext
+            {
+                LocalSettings = GetSettings(),
+                Log = new SleetLogger(Log),
+                Source = GetAzureFileSystem(),
+                Token = CancellationToken
+            };
+            context.SourceSettings = await FeedSettingsUtility.GetSettingsOrDefault(
+                context.Source,
+                context.Log,
+                context.Token);
+
+            var packageIndex = new PackageIndex(context);
+
+            return await packageIndex.GetPackagesAsync();
         }
 
         private bool IsSanityChecked(IEnumerable<string> items)
@@ -137,8 +238,6 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
 
         private LocalSettings GetSettings()
         {
-            
-
             SleetSettings sleetSettings = new SleetSettings()
             {
                 Sources = new List<SleetSource>
@@ -166,15 +265,16 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
         {
             LocalSettings settings = GetSettings();
             AzureFileSystem fileSystem = GetAzureFileSystem();
-            bool result = await PushCommand.RunAsync(settings, fileSystem, items.ToList(), allowOverwrite, !allowOverwrite, new SleetLogger(Log));
+            bool result = await PushCommand.RunAsync(settings, fileSystem, items.ToList(), allowOverwrite, skipExisting: false, log: new SleetLogger(Log));
             return result;
         }
 
         private async Task<bool> InitAsync()
         {
+
             LocalSettings settings = GetSettings();
             AzureFileSystem fileSystem = GetAzureFileSystem();
-            bool result = await InitCommand.RunAsync(settings, fileSystem, true, true, new SleetLogger(Log), CancellationToken);
+            bool result = await InitCommand.RunAsync(settings, fileSystem, enableCatalog: false, enableSymbols: false, log: new SleetLogger(Log), token: CancellationToken);
             return result;
         }
     }
