@@ -20,7 +20,7 @@ using CloudTestTasks = Microsoft.DotNet.Build.CloudTestTasks;
 
 namespace Microsoft.DotNet.Build.Tasks.Feed
 {
-    sealed class BlobFeedAction
+    public sealed class BlobFeedAction
     {
         private MSBuild.TaskLoggingHelper Log;
         private static readonly CancellationTokenSource TokenSource = new CancellationTokenSource();

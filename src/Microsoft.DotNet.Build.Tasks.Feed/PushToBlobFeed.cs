@@ -9,18 +9,11 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MSBuild = Microsoft.Build.Utilities;
 
 namespace Microsoft.DotNet.Build.Tasks.Feed
 {
-    public class PushToBlobFeed : MSBuild.Task
+    public class PushToBlobFeed : BlobFeedTask
     {
-        [Required]
-        public string ExpectedFeedUrl { get; set; }
-
-        [Required]
-        public string AccountKey { get; set; }
-
         [Required]
         public ITaskItem[] ItemsToPush { get; set; }
 
@@ -39,7 +32,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
             return ExecuteAsync().GetAwaiter().GetResult();
         }
 
-        public async Task<bool> ExecuteAsync()
+        protected override async Task<bool> ExecuteAsync()
         {
             try
             {
@@ -51,7 +44,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
                 }
                 else
                 {
-                    BlobFeedAction blobFeedAction = new BlobFeedAction(ExpectedFeedUrl, AccountKey, Log);
+                    BlobFeedAction blobFeedAction = CreateAction();
 
                     if (!SkipCreateContainer)
                     {

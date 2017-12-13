@@ -3,25 +3,19 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
 using NuGet.Packaging.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using MSBuild = Microsoft.Build.Utilities;
 
 namespace Microsoft.DotNet.Build.Tasks.Feed
 {
-    public class GetBlobFeedPackageList : MSBuild.Task
+    public class GetBlobFeedPackageList : BlobFeedTask
     {
         private const string NuGetPackageInfoId = "PackageId";
         private const string NuGetPackageInfoVersion = "PackageVersion";
-
-        [Required]
-        public string ExpectedFeedUrl { get; set; }
-
-        [Required]
-        public string AccountKey { get; set; }
 
         [Output]
         public ITaskItem[] PackageInfos { get; set; }
@@ -31,7 +25,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
             return ExecuteAsync().GetAwaiter().GetResult();
         }
 
-        private async Task<bool> ExecuteAsync()
+        protected override async Task<bool> ExecuteAsync()
         {
             try
             {
@@ -59,7 +53,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
                 [NuGetPackageInfoVersion] = identity.Version.ToString()
             };
 
-            return new MSBuild.TaskItem(identity.ToString(), metadata);
+            return new TaskItem(identity.ToString(), metadata);
         }
     }
 }

@@ -6,18 +6,11 @@ using Microsoft.Build.Framework;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using MSBuild = Microsoft.Build.Utilities;
 
 namespace Microsoft.DotNet.Build.Tasks.Feed
 {
-    public class DeleteFromBlobFeed : MSBuild.Task
+    public class DeleteFromBlobFeed : BlobFeedTask
     {
-        [Required]
-        public string ExpectedFeedUrl { get; set; }
-
-        [Required]
-        public string AccountKey { get; set; }
-
         [Required]
         public ITaskItem[] ItemsToDelete { get; set; }
 
@@ -25,12 +18,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
 
         public bool SkipCreateContainer { get; set; } = false;
 
-        public override bool Execute()
-        {
-            return ExecuteAsync().GetAwaiter().GetResult();
-        }
-
-        public async Task<bool> ExecuteAsync()
+        protected override async Task<bool> ExecuteAsync()
         {
             try
             {
@@ -42,7 +30,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
                 }
                 else
                 {
-                    BlobFeedAction blobFeedAction = new BlobFeedAction(ExpectedFeedUrl, AccountKey, Log);
+                    BlobFeedAction blobFeedAction = CreateAction();
 
                     if (!SkipCreateContainer)
                     {

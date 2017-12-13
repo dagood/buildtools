@@ -41,6 +41,7 @@
     </Compile>
     <Compile Include="BlobFeed.cs" />
     <Compile Include="BlobFeedAction.cs" />
+    <Compile Include="BlobFeedTask.cs" />
     <Compile Include="BlobUrlInfo.cs" />
     <Compile Include="ConfigureInputFeed.cs" />
     <Compile Include="GetBlobFeedPackageList.cs" />
