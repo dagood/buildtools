@@ -221,6 +221,28 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
             return await packageIndex.GetPackagesAsync();
         }
 
+        public async Task<bool> DeleteFromFeed(IEnumerable<PackageDeleteRequest> items, bool force)
+        {
+            Log.LogMessage(MessageImportance.Low, $"START deleting items from feed");
+            if (!items.Any())
+            {
+                Log.LogMessage("No items to delete found in the items list.");
+                return true;
+            }
+
+            try
+            {
+                bool[] results = await Task.WhenAll(items.Select(item => DeleteAsync(item, force)));
+                return results.All(result => result);
+            }
+            catch (Exception e)
+            {
+                Log.LogErrorFromException(e);
+            }
+
+            return !Log.HasLoggedErrors;
+        }
+
         private bool IsSanityChecked(IEnumerable<string> items)
         {
             Log.LogMessage(MessageImportance.Low, $"START checking sanitized items for feed");
@@ -279,10 +301,24 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
 
         private async Task<bool> InitAsync()
         {
-
             LocalSettings settings = GetSettings();
             AzureFileSystem fileSystem = GetAzureFileSystem();
             bool result = await InitCommand.RunAsync(settings, fileSystem, enableCatalog: false, enableSymbols: false, log: new SleetLogger(Log), token: CancellationToken);
+            return result;
+        }
+
+        private async Task<bool> DeleteAsync(PackageDeleteRequest item, bool force)
+        {
+            LocalSettings settings = GetSettings();
+            AzureFileSystem fileSystem = GetAzureFileSystem();
+            bool result = await DeleteCommand.RunAsync(
+                settings,
+                fileSystem,
+                item.Id,
+                item.Version,
+                item.Reason,
+                force,
+                log: new SleetLogger(Log));
             return result;
         }
     }

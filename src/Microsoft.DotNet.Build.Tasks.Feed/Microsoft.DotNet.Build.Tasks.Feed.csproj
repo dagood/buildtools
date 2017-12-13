@@ -45,7 +45,9 @@
     <Compile Include="ConfigureInputFeed.cs" />
     <Compile Include="GetBlobFeedPackageList.cs" />
     <Compile Include="CopyBlobDirectory.cs" />
+    <Compile Include="PackageDeleteRequest.cs" />
     <Compile Include="ParseFeedUrl.cs" />
+    <Compile Include="DeleteFromBlobFeed.cs" />
     <Compile Include="PushToBlobFeed.cs" />
     <Compile Include="SleetLogger.cs" />
     <Compile Include="SleetSettings.cs" />
