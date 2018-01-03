@@ -84,6 +84,7 @@
     <Compile Include="ConvertPortablePdbsToWindowsPdbs.cs" />
     <Compile Include="VisitProjectDependencies.cs" />
     <Compile Include="ValidateProjectDependencyVersions.cs" />
+    <Compile Include="VstsDefinitionEditing\CreateTempVstsDefinition.cs" />
     <Compile Include="WriteSigningRequired.cs" />
     <Compile Include="WriteVisualBasicDefineResponseFile.cs" />
     <Compile Include="$(CommonPath)\ZipFileCreateFromDependencyLists.cs">
@@ -132,6 +133,11 @@
     <ProjectReference Include="..\Microsoft.Cci.Extensions\Microsoft.Cci.Extensions.csproj">
       <Project>{2179f9b5-1dba-4563-9402-a94de75ea9fa}</Project>
       <Name>Microsoft.Cci.Extensions</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Microsoft.DotNet.Build.VSTSBuildsApi\Microsoft.DotNet.Build.VstsBuildsApi.csproj">
+      <Project>{dd658734-88b2-48ad-8adc-69d5c5798d9b}</Project>
+      <Name>Microsoft.DotNet.Build.VstsBuildsApi</Name>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\Microsoft.DotNet.VersionTools\Microsoft.DotNet.VersionTools.csproj">
       <Project>{8d524fa5-a8c5-4ebd-ba8b-2a4fed03ee58}</Project>

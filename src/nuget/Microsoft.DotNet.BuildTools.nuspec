@@ -45,11 +45,16 @@
 
     <file src="Microsoft.DotNet.CodeAnalysis.net45\Analyzers\*.*" target="lib\net46\analyzers" />
     <file src="Microsoft.Cci.Extensions\Microsoft.Cci.Extensions.dll" target="lib" />
+
     <file src="Microsoft.DotNet.Build.Tasks.Packaging\Microsoft.DotNet.Build.Tasks.Packaging.dll" target="lib" />
     <file src="Microsoft.DotNet.Build.Tasks.Packaging\NuGet.*.dll" target="lib" />
     <file src="Microsoft.DotNet.Build.Tasks.Packaging\PackageFiles\**\*.*" target="lib" />
     <file src="Microsoft.DotNet.Build.Tasks.Packaging.Desktop\Microsoft.DotNet.Build.Tasks.Packaging.dll" target="lib\net46" />
     <file src="Microsoft.DotNet.Build.Tasks.Packaging.Desktop\NuGet.*.dll" target="lib\net46" />
+
+    <file src="Microsoft.DotNet.Build.VstsBuildsApi\Microsoft.DotNet.Build.VstsBuildsApi.dll" target="lib" />
+    <file src="Microsoft.DotNet.Build.VstsBuildsApi.net45\Microsoft.DotNet.Build.VstsBuildsApi.dll" target="lib\net46" />
+
     <file src="Microsoft.DotNet.VersionTools\Microsoft.DotNet.VersionTools.dll" target="lib" />
     <file src="Microsoft.DotNet.VersionTools.net45\Microsoft.DotNet.VersionTools.dll" target="lib\net46" />
 

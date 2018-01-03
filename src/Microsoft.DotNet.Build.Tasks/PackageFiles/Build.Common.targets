@@ -277,6 +277,8 @@
    -->
   <Import Project="$(MSBuildThisFileDirectory)PackageLibs.targets" Condition="'$(ExcludePackageLibsImport)'!='true'"/>
 
+  <Import Project="$(MSBuildThisFileDirectory)EditVstsDefinitions.targets" />
+
   <Target Name="CheckDesignTime">
     <!--
       Visual Studio does a number of background builds to do a variety of tasks such as resolving references and preparing for intellisense.
