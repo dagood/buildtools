@@ -200,7 +200,8 @@ namespace Microsoft.DotNet.Build.CloudTestTasks
 
         public static async Task<HttpResponseMessage> RequestWithRetry(TaskLoggingHelper loggingHelper, HttpClient client,
             Func<HttpRequestMessage> createRequest, Func<HttpResponseMessage, bool> validationCallback = null, int retryCount = 5,
-            int retryDelaySeconds = 5)
+            int retryDelaySeconds = 5,
+            CancellationToken ct = default(CancellationToken))
         {
             if (loggingHelper == null)
                 throw new ArgumentNullException(nameof(loggingHelper));
@@ -231,13 +232,13 @@ namespace Microsoft.DotNet.Build.CloudTestTasks
 
                     int delay = retryDelaySeconds * retries * rng.Next(1, 5);
                     loggingHelper.LogMessage(MessageImportance.Low, "Waiting {0} seconds before retry", delay);
-                    await System.Threading.Tasks.Task.Delay(delay * 1000);
+                    await System.Threading.Tasks.Task.Delay(delay * 1000, ct);
                 }
 
                 try
                 {
                     using (var request = createRequest())
-                        response = await client.SendAsync(request);
+                        response = await client.SendAsync(request, ct);
                 }
                 catch (Exception e)
                 {

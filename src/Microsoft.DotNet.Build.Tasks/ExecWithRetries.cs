@@ -13,7 +13,7 @@ namespace Microsoft.DotNet.Build.Tasks
     /// <summary>
     /// Run a command and retry if the exit code is not 0.
     /// </summary>
-    public class ExecWithRetries : BuildTask
+    public class ExecWithRetries : BuildTask, ICancelableTask
     {
         [Required]
         public string Command { get; set; }

@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.DotNet.Build.CloudTestTasks
 {
-    public sealed class DownloadFromAzure : AzureConnectionStringBuildTask
+    public sealed class DownloadFromAzure : AzureConnectionStringBuildTask, ICancelableTask
     {
         /// <summary>
         /// The name of the container to access.  The specified name must be in the correct format, see the
@@ -157,7 +157,7 @@ namespace Microsoft.DotNet.Build.CloudTestTasks
 
                     var createRequest = AzureHelper.RequestMessage("GET", urlGetBlob, AccountName, AccountKey);
 
-                    using (HttpResponseMessage response = await AzureHelper.RequestWithRetry(Log, client, createRequest))
+                    using (HttpResponseMessage response = await AzureHelper.RequestWithRetry(Log, client, createRequest, ct: ct))
                     {
                         if (response.IsSuccessStatusCode)
                         {
