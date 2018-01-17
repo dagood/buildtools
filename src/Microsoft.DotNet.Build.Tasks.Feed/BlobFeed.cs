@@ -4,9 +4,7 @@
 
 using Microsoft.Build.Framework;
 using Microsoft.DotNet.Build.CloudTestTasks;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,14 +16,15 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
     {
         private MSBuild.TaskLoggingHelper Log;
 
-        public string AccountName { get; set; }
+        public string AccountName { get; }
 
-        public string AccountKey { get; set; }
+        public string AccountKey { get; }
 
-        public string ContainerName { get; set; }
+        public string ContainerName { get; }
 
-        public string RelativePath { get; set; }
+        public string RelativePath { get; }
 
+        public string ConnectionString { get; }
 
         private static readonly CancellationTokenSource TokenSource = new CancellationTokenSource();
         private static readonly CancellationToken CancellationToken = TokenSource.Token;
@@ -35,8 +34,9 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
             AccountName = accountName;
             AccountKey = accountKey;
             ContainerName = containerName;
-            Log = loggingHelper;
             RelativePath = relativePath;
+            ConnectionString = $"DefaultEndpointsProtocol=https;AccountName={AccountName};AccountKey={AccountKey};EndpointSuffix=core.windows.net";
+            Log = loggingHelper;
         }
 
         public string FeedContainerUrl => AzureHelper.GetContainerRestUrl(AccountName, ContainerName);
@@ -83,6 +83,19 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
                     return null;
                 }
             }
+        }
+
+        public AzureBlobLease GetLease(string blobName, TimeSpan? maxWait = null, TimeSpan? delay = null)
+        {
+            return new AzureBlobLease(
+                AccountName,
+                AccountKey,
+                ConnectionString,
+                ContainerName,
+                blobName,
+                Log,
+                maxWait?.ToString(),
+                delay?.ToString());
         }
     }
 }

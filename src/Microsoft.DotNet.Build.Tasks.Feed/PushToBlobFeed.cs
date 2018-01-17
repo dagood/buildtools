@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Build.Framework;
+using Microsoft.DotNet.Build.CloudTestTasks;
 using Microsoft.DotNet.VersionTools.Automation;
 using Microsoft.DotNet.VersionTools.BuildManifest.Model;
 using System;
@@ -145,32 +146,46 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
             }
 
             string blobPath = $"{AssetsVirtualDir}{ManifestAssetOutputDir}{ManifestName}.xml";
+            string absoluteBlobPath = $"{blobFeedAction.feed.RelativePath}{blobPath}";
 
-            string existingStr = await blobFeedAction.feed.DownloadBlobAsString(
-                $"{blobFeedAction.feed.RelativePath}{blobPath}");
+            // Evaluate artifact models now: avoid doing the work inside the lease critical section.
+            // E.g. package artifact model creation requires reading (extracting) the nuspec.
+            BlobArtifactModel[] concreteBlobArtifacts = blobArtifacts.ToArray();
+            PackageArtifactModel[] concretePackageArtifacts = packageArtifacts.ToArray();
 
-            BuildModel buildModel;
+            // Multiple legs of the same build are allowed to publish manifest info. If the legs
+            // try to update the manifest at the same time, they will synchronize on this lease.
+            AzureBlobLease lease = blobFeedAction.feed.GetLease(
+                absoluteBlobPath,
+                maxWait: TimeSpan.FromMinutes(5));
 
-            if (existingStr != null)
-            {
-                buildModel = BuildModel.Parse(XElement.Parse(existingStr));
-            }
-            else
-            {
-                buildModel = new BuildModel(
-                    new BuildIdentity(
-                        ManifestName,
-                        ManifestBuildId,
-                        ManifestBranch,
-                        ManifestCommit));
-            }
-
-            buildModel.Artifacts.Blobs.AddRange(blobArtifacts);
-            buildModel.Artifacts.Packages.AddRange(packageArtifacts);
+            lease.Acquire();
 
             string tempFile = null;
+
             try
             {
+                string existingStr = await blobFeedAction.feed.DownloadBlobAsString(absoluteBlobPath);
+
+                BuildModel buildModel;
+
+                if (existingStr != null)
+                {
+                    buildModel = BuildModel.Parse(XElement.Parse(existingStr));
+                }
+                else
+                {
+                    buildModel = new BuildModel(
+                        new BuildIdentity(
+                            ManifestName,
+                            ManifestBuildId,
+                            ManifestBranch,
+                            ManifestCommit));
+                }
+
+                buildModel.Artifacts.Blobs.AddRange(concreteBlobArtifacts);
+                buildModel.Artifacts.Packages.AddRange(concretePackageArtifacts);
+            
                 tempFile = Path.GetTempFileName();
 
                 File.WriteAllText(tempFile, buildModel.ToXml().ToString());
@@ -191,6 +206,8 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
             }
             finally
             {
+                lease.Release();
+
                 if (tempFile != null)
                 {
                     File.Delete(tempFile);

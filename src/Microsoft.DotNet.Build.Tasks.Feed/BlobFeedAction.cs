@@ -56,7 +56,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
                     Path = feedUrl,
                     Container = feed.ContainerName,
                     FeedSubPath = feed.RelativePath,
-                    ConnectionString = $"DefaultEndpointsProtocol=https;AccountName={feed.AccountName};AccountKey={feed.AccountKey};EndpointSuffix=core.windows.net"
+                    ConnectionString = feed.ConnectionString
                 };
             }
             else
