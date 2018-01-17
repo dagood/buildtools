@@ -3,9 +3,9 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Build.Framework;
-using Microsoft.DotNet.Build.CloudTestTasks;
 using Microsoft.DotNet.VersionTools.Automation;
 using Microsoft.DotNet.VersionTools.BuildManifest.Model;
+using Sleet;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -146,71 +146,70 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
             }
 
             string blobPath = $"{AssetsVirtualDir}{ManifestAssetOutputDir}{ManifestName}.xml";
-            string absoluteBlobPath = $"{blobFeedAction.feed.RelativePath}{blobPath}";
 
-            // Evaluate artifact models now: avoid doing the work inside the lease critical section.
+            // Evaluate artifact models now: avoid doing the work inside the lock critical section.
             // E.g. package artifact model creation requires reading (extracting) the nuspec.
             BlobArtifactModel[] concreteBlobArtifacts = blobArtifacts.ToArray();
             PackageArtifactModel[] concretePackageArtifacts = packageArtifacts.ToArray();
 
             // Multiple legs of the same build are allowed to publish manifest info. If the legs
-            // try to update the manifest at the same time, they will synchronize on this lease.
-            AzureBlobLease lease = blobFeedAction.feed.GetLease(
-                absoluteBlobPath,
-                maxWait: TimeSpan.FromMinutes(5));
-
-            lease.Acquire();
-
-            string tempFile = null;
-
-            try
+            // try to update the manifest at the same time, they will synchronize on this lock.
+            using (ISleetFileSystemLock feedLock = blobFeedAction.CreateLock())
             {
-                string existingStr = await blobFeedAction.feed.DownloadBlobAsString(absoluteBlobPath);
-
-                BuildModel buildModel;
-
-                if (existingStr != null)
+                if (!await feedLock.GetLock(TimeSpan.FromMinutes(5), CancellationToken.None))
                 {
-                    buildModel = BuildModel.Parse(XElement.Parse(existingStr));
-                }
-                else
-                {
-                    buildModel = new BuildModel(
-                        new BuildIdentity(
-                            ManifestName,
-                            ManifestBuildId,
-                            ManifestBranch,
-                            ManifestCommit));
+                    throw new Exception("Unable to acquire feed lock.");
                 }
 
-                buildModel.Artifacts.Blobs.AddRange(concreteBlobArtifacts);
-                buildModel.Artifacts.Packages.AddRange(concretePackageArtifacts);
-            
-                tempFile = Path.GetTempFileName();
-
-                File.WriteAllText(tempFile, buildModel.ToXml().ToString());
-
-                var item = new MSBuild.TaskItem(tempFile, new Dictionary<string, string>
+                string tempFile = null;
+                try
                 {
-                    ["RelativeBlobPath"] = blobPath
-                });
+                    string existingStr = await blobFeedAction.feed.DownloadBlobAsString(
+                        $"{blobFeedAction.feed.RelativePath}{blobPath}");
 
-                using (var clientThrottle = new SemaphoreSlim(MaxClients, MaxClients))
-                {
-                    await blobFeedAction.UploadAssets(
-                        item,
-                        clientThrottle,
-                        UploadTimeoutInMinutes,
-                        allowOverwrite: true);
+                    BuildModel buildModel;
+
+                    if (existingStr != null)
+                    {
+                        buildModel = BuildModel.Parse(XElement.Parse(existingStr));
+                    }
+                    else
+                    {
+                        buildModel = new BuildModel(
+                            new BuildIdentity(
+                                ManifestName,
+                                ManifestBuildId,
+                                ManifestBranch,
+                                ManifestCommit));
+                    }
+
+                    buildModel.Artifacts.Blobs.AddRange(concreteBlobArtifacts);
+                    buildModel.Artifacts.Packages.AddRange(concretePackageArtifacts);
+
+                    tempFile = Path.GetTempFileName();
+
+                    File.WriteAllText(tempFile, buildModel.ToXml().ToString());
+
+                    var item = new MSBuild.TaskItem(tempFile, new Dictionary<string, string>
+                    {
+                        ["RelativeBlobPath"] = blobPath
+                    });
+
+                    using (var clientThrottle = new SemaphoreSlim(MaxClients, MaxClients))
+                    {
+                        await blobFeedAction.UploadAssets(
+                            item,
+                            clientThrottle,
+                            UploadTimeoutInMinutes,
+                            allowOverwrite: true);
+                    }
                 }
-            }
-            finally
-            {
-                lease.Release();
-
-                if (tempFile != null)
+                finally
                 {
-                    File.Delete(tempFile);
+                    if (tempFile != null)
+                    {
+                        File.Delete(tempFile);
+                    }
                 }
             }
         }

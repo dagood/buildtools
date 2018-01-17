@@ -56,7 +56,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
                     Path = feedUrl,
                     Container = feed.ContainerName,
                     FeedSubPath = feed.RelativePath,
-                    ConnectionString = feed.ConnectionString
+                    ConnectionString = $"DefaultEndpointsProtocol=https;AccountName={feed.AccountName};AccountKey={feed.AccountKey};EndpointSuffix=core.windows.net"
                 };
             }
             else
@@ -227,6 +227,11 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
             var packageIndex = new PackageIndex(context);
 
             return await packageIndex.GetPackagesAsync();
+        }
+
+        public ISleetFileSystemLock CreateLock()
+        {
+            return GetAzureFileSystem().CreateLock(new SleetLogger(Log));
         }
 
         private bool IsSanityChecked(IEnumerable<string> items)
