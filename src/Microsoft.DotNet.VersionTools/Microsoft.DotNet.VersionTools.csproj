@@ -35,10 +35,9 @@
     <Compile Include="BuildManifest\Model\ArtifactSet.cs" />
     <Compile Include="BuildManifest\Model\BlobArtifactModel.cs" />
     <Compile Include="BuildManifest\Model\BuildIdentity.cs" />
-    <Compile Include="BuildManifest\Model\BuildModel.cs" />
     <Compile Include="BuildManifest\Model\EndpointModel.cs" />
     <Compile Include="BuildManifest\Model\PackageArtifactModel.cs" />
-    <Compile Include="BuildManifest\Model\OrchestratedBuildModel.cs" />
+    <Compile Include="BuildManifest\Model\BuildModel.cs" />
     <Compile Include="BuildManifest\Model\SemaphoreModel.cs" />
     <Compile Include="BuildManifest\Model\XElementParsingExtensions.cs" />
     <Compile Include="BuildManifest\SupplementaryUploadRequest.cs" />

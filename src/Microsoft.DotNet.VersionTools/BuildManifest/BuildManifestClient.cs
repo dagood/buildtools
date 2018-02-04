@@ -28,12 +28,12 @@ namespace Microsoft.DotNet.VersionTools.BuildManifest
             _github = githubClient;
         }
 
-        public async Task<OrchestratedBuildModel> FetchManifestAsync(
+        public async Task<BuildModel> FetchManifestAsync(
             GitHubProject project,
             string @ref,
             string basePath)
         {
-            return OrchestratedBuildModel.Parse(await FetchModelXmlAsync(project, @ref, basePath));
+            return BuildModel.Parse(await FetchModelXmlAsync(project, @ref, basePath));
         }
 
         public async Task<SemaphoreModel> FetchSemaphoreAsync(
@@ -54,7 +54,7 @@ namespace Microsoft.DotNet.VersionTools.BuildManifest
             GitHubProject project,
             string @ref,
             string basePath,
-            OrchestratedBuildModel build,
+            BuildModel build,
             IEnumerable<SupplementaryUploadRequest> supplementaryUploads,
             string message)
         {
@@ -92,7 +92,7 @@ namespace Microsoft.DotNet.VersionTools.BuildManifest
             string @ref,
             string basePath,
             string orchestratedBuildId,
-            Action<OrchestratedBuildModel> changeModel,
+            Action<BuildModel> changeModel,
             IEnumerable<string> semaphorePaths,
             IEnumerable<SupplementaryUploadRequest> supplementaryUploads,
             string message)
@@ -107,7 +107,7 @@ namespace Microsoft.DotNet.VersionTools.BuildManifest
                 // This is a subsequent publish step: check to make sure the build id matches.
                 XElement remoteModelXml = await FetchModelXmlAsync(project, remoteCommit, basePath);
 
-                OrchestratedBuildModel remoteModel = OrchestratedBuildModel.Parse(remoteModelXml);
+                BuildModel remoteModel = BuildModel.Parse(remoteModelXml);
 
                 if (orchestratedBuildId != remoteModel.Identity.BuildId)
                 {
@@ -116,7 +116,7 @@ namespace Microsoft.DotNet.VersionTools.BuildManifest
                         remoteModel.Identity.BuildId);
                 }
 
-                OrchestratedBuildModel modifiedModel = OrchestratedBuildModel.Parse(remoteModelXml);
+                BuildModel modifiedModel = BuildModel.Parse(remoteModelXml);
                 changeModel(modifiedModel);
 
                 if (modifiedModel.Identity.BuildId != orchestratedBuildId)

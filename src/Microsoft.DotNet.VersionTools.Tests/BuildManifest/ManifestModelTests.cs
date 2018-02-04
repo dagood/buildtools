@@ -35,7 +35,7 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
         public void TestExampleOrchestratedBuildManifestRoundtrip()
         {
             XElement xml = XElement.Parse(ExampleOrchestratedBuildString);
-            var model = OrchestratedBuildModel.Parse(xml);
+            var model = BuildModel.Parse(xml);
             XElement modelXml = model.ToXml();
 
             Assert.True(
@@ -61,7 +61,7 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
         {
             var model = CreatePackageOnlyBuildManifestModel();
             XElement modelXml = model.ToXml();
-            XElement xml = XElement.Parse(@"<Build Name=""SimpleBuildManifest"" BuildId=""123""><Package Id=""Foo"" Version=""1.2.3-example"" /></Build>");
+            XElement xml = XElement.Parse(ExamplePackageOnlyBuildManifest);
 
             Assert.True(XNode.DeepEquals(xml, modelXml));
         }
@@ -69,7 +69,7 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
         [Fact]
         public void TestMergeBuildManifests()
         {
-            var orchestratedModel = new OrchestratedBuildModel(new BuildIdentity { Name = "Orchestrated", BuildId = "123" })
+            var orchestratedModel = new BuildModel(new BuildIdentity { Name = "Orchestrated", BuildId = "123" })
             {
                 Endpoints = new List<EndpointModel>
                 {
@@ -81,8 +81,8 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
             orchestratedModel.AddParticipantBuild(BuildModel.Parse(XElement.Parse(ExampleBuildString)));
 
             XElement modelXml = orchestratedModel.ToXml();
-            XElement xml = XElement.Parse(@"
-<OrchestratedBuild Name=""Orchestrated"" BuildId=""123"">
+            XElement xml = XElement.Parse($@"
+<Build Name=""Orchestrated"" BuildId=""123"">
   <Endpoint Id=""Orchestrated"" Type=""BlobFeed"" Url=""http://example.org"">
     <Package Id=""Foo"" Version=""1.2.3-example"" />
     <Package Id=""runtime.rhel.6-x64.Microsoft.Private.CoreFx.NETCoreApp"" Version=""4.5.0-preview1-25929-04"" Category=""noship"" />
@@ -91,9 +91,9 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
     <Blob Id=""symbols/runtime.rhel.6-x64.Microsoft.Private.CoreFx.NETCoreApp.4.5.0-preview1-25929-04.symbols.nupkg"" />
     <Blob Id=""symbols/System.ValueTuple.4.5.0-preview1-25929-04.symbols.nupkg"" NonShipping=""true"" />
   </Endpoint>
-  <Build Name=""SimpleBuildManifest"" BuildId=""123"" />
-  <Build Name=""corefx"" BuildId=""20171129-04"" Branch=""master"" Commit=""defb6d52047cc3d6b5f5d0853b0afdb1512dfbf4"" />
-</OrchestratedBuild>");
+  {ExamplePackageOnlyBuildManifest}
+  {ExampleBuildString}
+</Build>");
 
             Assert.True(XNode.DeepEquals(xml, modelXml));
         }
@@ -133,7 +133,7 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
 </Build>";
 
         private const string ExampleOrchestratedBuildString = @"
-<OrchestratedBuild
+<Build
   Name=""core-setup""
   BuildId=""20171129-02""
   Branch=""master"">
@@ -171,7 +171,11 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
     Branch=""master""
     Commit=""152dbe8a4b4e30eee26208ff6a850e9aa73c07f8"" />
 
-</OrchestratedBuild>
+</Build>
+";
+
+        private const string ExamplePackageOnlyBuildManifest = @"
+<Build Name=""SimpleBuildManifest"" BuildId=""123""><Package Id=""Foo"" Version=""1.2.3-example"" /></Build>
 ";
     }
 }
