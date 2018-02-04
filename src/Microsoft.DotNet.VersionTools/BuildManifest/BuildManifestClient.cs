@@ -77,7 +77,7 @@ namespace Microsoft.DotNet.VersionTools.BuildManifest
                             Path = SemaphoreModel.BuildSemaphorePath,
                             Contents = new SemaphoreModel
                             {
-                                BuildId = build.Identity.BuildId
+                                BuildId = build.BuildId
                             }.ToFileContent()
                         }
                     })
@@ -109,21 +109,21 @@ namespace Microsoft.DotNet.VersionTools.BuildManifest
 
                 BuildModel remoteModel = BuildModel.Parse(remoteModelXml);
 
-                if (orchestratedBuildId != remoteModel.Identity.BuildId)
+                if (orchestratedBuildId != remoteModel.BuildId)
                 {
                     throw new ManifestChangeOutOfDateException(
                         orchestratedBuildId,
-                        remoteModel.Identity.BuildId);
+                        remoteModel.BuildId);
                 }
 
                 BuildModel modifiedModel = BuildModel.Parse(remoteModelXml);
                 changeModel(modifiedModel);
 
-                if (modifiedModel.Identity.BuildId != orchestratedBuildId)
+                if (modifiedModel.BuildId != orchestratedBuildId)
                 {
                     throw new ArgumentException(
                         "Change action shouldn't modify BuildId. Changed from " +
-                        $"'{orchestratedBuildId}' to '{modifiedModel.Identity.BuildId}'.",
+                        $"'{orchestratedBuildId}' to '{modifiedModel.BuildId}'.",
                         nameof(changeModel));
                 }
 

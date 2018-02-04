@@ -106,7 +106,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed.BuildManifest
             }
         }
 
-        private static void ApplyUpdate(OrchestratedBuildModel manifest, ITaskItem update)
+        private static void ApplyUpdate(BuildModel manifest, ITaskItem update)
         {
             string type = update.GetMetadata(nameof(UpdateType));
             UpdateType updateType;

@@ -158,15 +158,14 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
             }
             else
             {
-                buildModel = new BuildModel(
-                    new BuildIdentity
-                    {
-                        Attributes = ParseManifestMetadataString(ManifestBuildData),
-                        Name = ManifestName,
-                        BuildId = ManifestBuildId,
-                        Branch = ManifestBranch,
-                        Commit = ManifestCommit
-                    });
+                buildModel = new BuildModel
+                {
+                    Attributes = ParseManifestMetadataString(ManifestBuildData),
+                    Name = ManifestName,
+                    BuildId = ManifestBuildId,
+                    Branch = ManifestBranch,
+                    Commit = ManifestCommit
+                };
             }
 
             buildModel.Artifacts.Blobs.AddRange(blobArtifacts);

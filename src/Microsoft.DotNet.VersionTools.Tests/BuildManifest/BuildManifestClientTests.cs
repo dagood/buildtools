@@ -40,7 +40,7 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
             var mockGitHub = new Mock<IGitHubClient>(MockBehavior.Strict);
 
             var client = new BuildManifestClient(mockGitHub.Object);
-            var build = new BuildModel(new BuildIdentity { Name = "orch", BuildId = "123"});
+            var build = new BuildModel { Name = "orch", BuildId = "123" };
             var proj = new GitHubProject("versions", "dotnet");
             string @ref = "heads/master";
             string basePath = "build-info/dotnet/product/cli/master";
@@ -67,7 +67,7 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
                             objects[0].Path == $"{basePath}/{BuildManifestClient.BuildManifestXmlName}" &&
                             objects[0].Content == build.ToXml().ToString() &&
                             objects[1].Path == $"{basePath}/{SemaphoreModel.BuildSemaphorePath}" &&
-                            objects[1].Content == build.Identity.BuildId + "\n")))
+                            objects[1].Content == build.BuildId + "\n")))
                 .ReturnsAsync(() => new GitTree { Sha = fakeTreeHash });
 
             mockGitHub
@@ -105,7 +105,7 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
             string message = "Test change manifest commit";
             string addSemaphorePath = "add-identity.semaphore";
 
-            var fakeExistingBuild = new BuildModel(new BuildIdentity { Name = "orch", BuildId = "123"});
+            var fakeExistingBuild = new BuildModel { Name = "orch", BuildId = "123" };
             string fakeExistingBuildString = fakeExistingBuild.ToXml().ToString();
             string fakeCommitHash = "fakeCommitHash";
             string fakeTreeHash = "fakeTreeHash";
@@ -133,7 +133,7 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
                         objects =>
                             objects.Length == 1 &&
                             objects[0].Path == $"{basePath}/{addSemaphorePath}" &&
-                            objects[0].Content == fakeExistingBuild.Identity.BuildId + "\n")))
+                            objects[0].Content == fakeExistingBuild.BuildId + "\n")))
                 .ReturnsAsync(() => new GitTree { Sha = fakeTreeHash });
 
             mockGitHub
@@ -152,7 +152,7 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
                 proj,
                 @ref,
                 basePath,
-                fakeExistingBuild.Identity.BuildId,
+                fakeExistingBuild.BuildId,
                 _ => { },
                 new[] { addSemaphorePath },
                 null,
@@ -173,8 +173,8 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
             string message = "Test change manifest commit";
             string addSemaphorePath = "add-identity.semaphore";
 
-            var fakeExistingBuild = new BuildModel(new BuildIdentity { Name = "orch", BuildId = "123" });
-            var fakeNewExistingBuild = new BuildModel(new BuildIdentity { Name = "orch", BuildId = "456" });
+            var fakeExistingBuild = new BuildModel { Name = "orch", BuildId = "123" };
+            var fakeNewExistingBuild = new BuildModel { Name = "orch", BuildId = "456" };
             string fakeCommitHash = "fakeCommitHash";
 
             mockGitHub
@@ -193,7 +193,7 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
                     proj,
                     @ref,
                     basePath,
-                    fakeExistingBuild.Identity.BuildId,
+                    fakeExistingBuild.BuildId,
                     _ => { },
                     new[] { addSemaphorePath },
                     null,
@@ -208,7 +208,7 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
             var mockGitHub = new Mock<IGitHubClient>(MockBehavior.Strict);
 
             var client = new BuildManifestClient(mockGitHub.Object);
-            var build = new BuildModel(new BuildIdentity { Name = "orch", BuildId = "123" });
+            var build = new BuildModel { Name = "orch", BuildId = "123" };
             var proj = new GitHubProject("versions", "dotnet");
             string @ref = "heads/master";
             string basePath = "build-info/dotnet/product/cli/master";

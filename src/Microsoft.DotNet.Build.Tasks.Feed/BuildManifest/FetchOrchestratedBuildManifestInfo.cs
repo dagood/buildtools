@@ -55,14 +55,14 @@ namespace Microsoft.DotNet.Build.Tasks.Feed.BuildManifest
             {
                 var client = new BuildManifestClient(gitHubClient);
 
-                OrchestratedBuildModel manifest = client.FetchManifestAsync(
+                BuildModel manifest = client.FetchManifestAsync(
                     new GitHubProject(VersionsRepo, VersionsRepoOwner),
                     VersionsRepoRef,
                     VersionsRepoPath)
                     .Result;
 
-                OrchestratedBuildId = manifest.Identity.BuildId;
-                OrchestratedIdentity = manifest.Identity.ToString();
+                OrchestratedBuildId = manifest.BuildId;
+                OrchestratedIdentity = manifest.ToString();
 
                 EndpointModel[] orchestratedFeeds = manifest.Endpoints
                     .Where(e => e.IsOrchestratedBlobFeed)
@@ -101,11 +101,11 @@ namespace Microsoft.DotNet.Build.Tasks.Feed.BuildManifest
             return new TaskItem("Package", ArtifactMetadata(model.ToXml(), model.Attributes));
         }
 
-        private ITaskItem CreateItem(BuildIdentity model)
+        private ITaskItem CreateItem(BuildModel model)
         {
             return new TaskItem(
                 model.Name,
-                ArtifactMetadata(model.ToXmlBuildElement(), model.Attributes));
+                ArtifactMetadata(model.ToXml(), model.Attributes));
         }
 
         private Dictionary<string, string> ArtifactMetadata(

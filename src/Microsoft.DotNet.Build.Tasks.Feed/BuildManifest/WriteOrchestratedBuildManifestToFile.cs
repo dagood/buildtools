@@ -42,16 +42,12 @@ namespace Microsoft.DotNet.Build.Tasks.Feed.BuildManifest
                 ManifestCommit = null;
             }
 
-            var identity = new BuildIdentity
+            var orchestratedBuild = new BuildModel
             {
                 Name = ManifestName,
                 BuildId = ManifestBuildId,
                 Branch = ManifestBranch,
-                Commit = ManifestCommit
-            };
-
-            var orchestratedBuild = new OrchestratedBuildModel(identity)
-            {
+                Commit = ManifestCommit,
                 Endpoints = new List<EndpointModel>
                 {
                     EndpointModel.CreateOrchestratedBlobFeed(BlobFeedUrl)

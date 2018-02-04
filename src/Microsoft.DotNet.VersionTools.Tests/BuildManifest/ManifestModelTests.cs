@@ -69,8 +69,10 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
         [Fact]
         public void TestMergeBuildManifests()
         {
-            var orchestratedModel = new BuildModel(new BuildIdentity { Name = "Orchestrated", BuildId = "123" })
+            var orchestratedModel = new BuildModel
             {
+                Name = "Orchestrated",
+                BuildId = "123",
                 Endpoints = new List<EndpointModel>
                 {
                     EndpointModel.CreateOrchestratedBlobFeed("http://example.org")
@@ -100,8 +102,10 @@ namespace Microsoft.DotNet.VersionTools.Tests.BuildManifest
 
         private BuildModel CreatePackageOnlyBuildManifestModel()
         {
-            return new BuildModel(new BuildIdentity { Name = "SimpleBuildManifest", BuildId = "123" })
+            return new BuildModel
             {
+                Name = "SimpleBuildManifest",
+                BuildId = "123",
                 Artifacts = new ArtifactSet
                 {
                     Packages = new List<PackageArtifactModel>

@@ -43,11 +43,11 @@ namespace Microsoft.DotNet.Build.Tasks.Feed.BuildManifest
         public override bool Execute()
         {
             string contents = System.IO.File.ReadAllText(ManifestFile);
-            var model = OrchestratedBuildModel.Parse(XElement.Parse(contents));
+            var model = BuildModel.Parse(XElement.Parse(contents));
 
             if (string.IsNullOrEmpty(CommitMessage))
             {
-                CommitMessage = $"{model.Identity} orchestrated build manifest";
+                CommitMessage = $"{model} orchestrated build manifest";
             }
 
             var gitHubAuth = new GitHubAuth(GitHubAuthToken, GitHubUser, GitHubEmail);

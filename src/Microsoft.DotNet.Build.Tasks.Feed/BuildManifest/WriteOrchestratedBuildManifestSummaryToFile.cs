@@ -28,7 +28,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed.BuildManifest
         public override bool Execute()
         {
             string contents = System.IO.File.ReadAllText(ManifestFile);
-            OrchestratedBuildModel model = OrchestratedBuildModel.Parse(XElement.Parse(contents));
+            BuildModel model = BuildModel.Parse(XElement.Parse(contents));
             EndpointModel blobFeed = model.Endpoints.First(e => e.IsOrchestratedBlobFeed);
 
             string feedAssetsRoot = blobFeed.Url.Replace("/index.json", "/assets");
@@ -52,7 +52,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed.BuildManifest
             var builder = new StringBuilder();
 
             builder.Append("## Product build: ");
-            builder.AppendLine(model.Identity.ToString());
+            builder.AppendLine(model.ToString());
 
             if (!string.IsNullOrEmpty(SdkTableTemplateFile) && sdkProductVersion != null)
             {
@@ -84,7 +84,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed.BuildManifest
             builder.AppendLine();
             builder.AppendLine("### Built Repositories");
 
-            foreach (BuildIdentity build in model.Builds
+            foreach (BuildModel build in model.Builds
                 .Where(b => b.Name != "anonymous")
                 .OrderBy(b => b.Name))
             {
