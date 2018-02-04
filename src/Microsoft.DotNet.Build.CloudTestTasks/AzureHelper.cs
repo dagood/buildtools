@@ -4,6 +4,7 @@
 
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
+using Microsoft.DotNet.Net;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -14,8 +15,8 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
 namespace Microsoft.DotNet.Build.CloudTestTasks
 {
@@ -291,6 +292,70 @@ namespace Microsoft.DotNet.Build.CloudTestTasks
             }
 
             throw new HttpRequestException($"Request {createRequest().RequestUri} failed with status {statusCode}. Response : {contentStr}");
+        }
+
+        public static async Task<HttpResponseMessage> DownloadBlobAsync(
+            TaskLoggingHelper log,
+            string accountName,
+            string accountKey,
+            string containerName,
+            string blob,
+            HttpClient customClient = null)
+        {
+            log.LogMessage(MessageImportance.Low, $"Downloading BLOB - {blob}");
+
+            Func<HttpRequestMessage> createRequest = RequestMessage(
+                "GET",
+                $"{GetContainerRestUrl(accountName, containerName)}/{blob}",
+                accountName,
+                accountKey);
+
+            HttpResponseMessage response = null;
+
+            await UseClientOrDefaultClientAsync(customClient, async client =>
+            {
+                response = await RequestWithRetry(log, client, createRequest);
+            });
+
+            await HttpUnsuccessfulResponseException.ThrowIfUnsuccessfulAsync(
+                response,
+                $"Failed to retrieve blob {blob}.");
+
+            return response;
+        }
+
+        public static HttpClient CreateClient(
+            TimeSpan? timeout = null,
+            bool keepDefaultRequestHeaders = false)
+        {
+            var client = new HttpClient
+            {
+                Timeout = timeout ?? TimeSpan.FromMinutes(10)
+            };
+
+            if (!keepDefaultRequestHeaders)
+            {
+                client.DefaultRequestHeaders.Clear();
+            }
+
+            return client;
+        }
+
+        private static async Task UseClientOrDefaultClientAsync(
+            HttpClient client,
+            Func<HttpClient, Task> action)
+        {
+            if (client == null)
+            {
+                using (client = CreateClient())
+                {
+                    await action(client);
+                }
+            }
+            else
+            {
+                await action(client);
+            }
         }
 
         private static string ConstructServiceStringToSign(

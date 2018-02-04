@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.DotNet.Net;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -81,7 +82,7 @@ namespace Microsoft.DotNet.VersionTools.Automation.GitHubApi
                 GitHubContents file = await GetGitHubFileAsync(path, branch.Project, $"heads/{branch.Name}");
                 return FromBase64(file.Content);
             }
-            catch (HttpFailureResponseException ex) when (ex.HttpStatusCode == HttpStatusCode.NotFound)
+            catch (HttpUnsuccessfulResponseException ex) when (ex.HttpStatusCode == HttpStatusCode.NotFound)
             {
                 return null;
             }
@@ -97,7 +98,7 @@ namespace Microsoft.DotNet.VersionTools.Automation.GitHubApi
                 GitHubContents file = await GetGitHubFileAsync(path, project, @ref);
                 return FromBase64(file.Content);
             }
-            catch (HttpFailureResponseException ex) when (ex.HttpStatusCode == HttpStatusCode.NotFound)
+            catch (HttpUnsuccessfulResponseException ex) when (ex.HttpStatusCode == HttpStatusCode.NotFound)
             {
                 return null;
             }
@@ -375,7 +376,7 @@ namespace Microsoft.DotNet.VersionTools.Automation.GitHubApi
                 {
                     return await DeserializeSuccessfulAsync<GitReference>(response);
                 }
-                catch (HttpFailureResponseException e) when (
+                catch (HttpUnsuccessfulResponseException e) when (
                     e.HttpStatusCode == UnprocessableEntityStatusCode &&
                     JObject.Parse(e.Content)["message"]?.Value<string>() == NotFastForwardMessage)
                 {
@@ -419,16 +420,7 @@ namespace Microsoft.DotNet.VersionTools.Automation.GitHubApi
                 }
             }
 
-            if (!response.IsSuccessStatusCode)
-            {
-                string failureContent = await response.Content.ReadAsStringAsync();
-                string message = $"Response code does not indicate success: {(int)response.StatusCode} ({response.StatusCode})";
-                if (!string.IsNullOrWhiteSpace(failureContent))
-                {
-                    message += $" with content: {failureContent}";
-                }
-                throw new HttpFailureResponseException(response.StatusCode, message, failureContent);
-            }
+            await HttpUnsuccessfulResponseException.ThrowIfUnsuccessfulAsync(response);
         }
 
         private static async Task<string> GetPullRequestUrlAsync(HttpResponseMessage response)

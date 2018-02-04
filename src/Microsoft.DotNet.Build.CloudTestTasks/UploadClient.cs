@@ -219,45 +219,31 @@ namespace Microsoft.DotNet.Build.CloudTestTasks
             string destinationBlob,
             int uploadTimeout)
         {
-            using (var client = new HttpClient
-            {
-                Timeout = TimeSpan.FromMinutes(uploadTimeout)
-            })
-            {
-                log.LogMessage(
-                    MessageImportance.Low,
-                    $"Downloading blob {destinationBlob} to check if identical.");
+            log.LogMessage(
+                MessageImportance.Low,
+                $"Downloading blob {destinationBlob} to check if identical.");
 
-                string urlGetBlob = AzureHelper.GetBlobRestUrl(accountName, containerName, destinationBlob);
-                var createRequest = AzureHelper.RequestMessage("GET", urlGetBlob, accountName, accountKey);
+            using (HttpResponseMessage response = await AzureHelper.DownloadBlobAsync(
+                log,
+                accountName,
+                accountKey,
+                containerName,
+                destinationBlob))
+            {
+                byte[] existingBytes = await response.Content.ReadAsByteArrayAsync();
+                byte[] localBytes = File.ReadAllBytes(filePath);
 
-                using (HttpResponseMessage response = await AzureHelper.RequestWithRetry(
-                    log,
-                    client,
-                    createRequest))
+                bool equal = localBytes.SequenceEqual(existingBytes);
+
+                if (equal)
                 {
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        throw new HttpRequestException(
-                            $"Failed to retrieve existing blob {destinationBlob}, " +
-                            $"status code {response.StatusCode}.");
-                    }
-
-                    byte[] existingBytes = await response.Content.ReadAsByteArrayAsync();
-                    byte[] localBytes = File.ReadAllBytes(filePath);
-
-                    bool equal = localBytes.SequenceEqual(existingBytes);
-
-                    if (equal)
-                    {
-                        log.LogMessage(
-                            MessageImportance.Normal,
-                            "Item exists in blob storage, and is verified to be identical. " +
-                            $"File: '{filePath}' Blob: '{destinationBlob}'");
-                    }
-
-                    return equal;
+                    log.LogMessage(
+                        MessageImportance.Normal,
+                        "Item exists in blob storage, and is verified to be identical. " +
+                        $"File: '{filePath}' Blob: '{destinationBlob}'");
                 }
+
+                return equal;
             }
         }
 

@@ -26,6 +26,9 @@
     <Compile Include="$(CommonPath)\ZipFileCreateFromDirectory.cs">
       <Link>ZipFileCreateFromDirectory.cs</Link>
     </Compile>
+    <Compile Include="..\common\HttpFailureResponseException.cs">
+      <Link>HttpFailureResponseException.cs</Link>
+    </Compile>
     <Compile Include="AzureConnectionStringBuildTask.cs" />
     <Compile Include="AzureBlobLease.cs" />
     <Compile Include="AzureHelper.cs" />

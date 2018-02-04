@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using Microsoft.Build.Framework;
 using Microsoft.DotNet.Build.CloudTestTasks;
 using System.Collections.Generic;
@@ -44,9 +45,8 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
         public async Task<bool> CheckIfBlobExistsAsync(string blobPath)
         {
             string url = $"{FeedContainerUrl}/{blobPath}?comp=metadata";
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = AzureHelper.CreateClient())
             {
-                client.DefaultRequestHeaders.Clear();
                 var request = AzureHelper.RequestMessage("GET", url, AccountName, AccountKey).Invoke();
                 using (HttpResponseMessage response = await client.SendAsync(request))
                 {
@@ -69,36 +69,37 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
 
         public async Task<string> DownloadBlobAsStringAsync(string blobPath)
         {
-            using (HttpResponseMessage response = await DownloadBlobAsync(blobPath))
-            {
-                if (response.IsSuccessStatusCode)
-                {
-                    return await response.Content.ReadAsStringAsync();
-                }
-                return null;
-            }
+            return await DownloadBlobAsync(
+                blobPath,
+                response => response.Content.ReadAsStringAsync());
         }
 
         public async Task<byte[]> DownloadBlobAsBytesAsync(string blobPath)
         {
-            using (HttpResponseMessage response = await DownloadBlobAsync(blobPath))
-            {
-                if (response.IsSuccessStatusCode)
-                {
-                    return await response.Content.ReadAsByteArrayAsync();
-                }
-                return null;
-            }
+            return await DownloadBlobAsync(
+                blobPath,
+                response => response.Content.ReadAsByteArrayAsync());
         }
 
-        private async Task<HttpResponseMessage> DownloadBlobAsync(string blobPath)
+        private async Task<TResult> DownloadBlobAsync<TResult>(
+            string blobPath,
+            Func<HttpResponseMessage, Task<TResult>> process)
         {
-            string url = $"{FeedContainerUrl}/{blobPath}";
-            using (HttpClient client = new HttpClient())
+            try
             {
-                client.DefaultRequestHeaders.Clear();
-                var request = AzureHelper.RequestMessage("GET", url, AccountName, AccountKey)();
-                return await client.SendAsync(request);
+                using (HttpResponseMessage response = await AzureHelper.DownloadBlobAsync(
+                    Log,
+                    AccountName,
+                    AccountKey,
+                    ContainerName,
+                    blobPath))
+                {
+                    return await process(response);
+                }
+            }
+            catch (HttpRequestException)
+            {
+                return default(TResult);
             }
         }
     }

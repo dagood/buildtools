@@ -10,6 +10,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Build.Utilities;
+using Task = System.Threading.Tasks.Task;
 
 namespace Microsoft.DotNet.Build.CloudTestTasks
 {
@@ -114,72 +116,63 @@ namespace Microsoft.DotNet.Build.CloudTestTasks
         {
             await clientThrottle.WaitAsync();
             string filename = string.Empty;
-            try {
-                using (HttpClient client = new HttpClient())
+            try
+            {
+                filename = Path.Combine(DownloadDirectory, Path.GetFileName(blob));
+
+                if (!DownloadFlatFiles)
                 {
-                    client.Timeout = TimeSpan.FromMinutes(10);
-                    Log.LogMessage(MessageImportance.Low, "Downloading BLOB - {0}", blob);
-                    string urlGetBlob = AzureHelper.GetBlobRestUrl(AccountName, ContainerName, blob);
-                    filename = Path.Combine(DownloadDirectory, Path.GetFileName(blob));
+                    int dirIndex = blob.LastIndexOf("/");
+                    string blobDirectory = string.Empty;
+                    string blobFilename = string.Empty;
 
-                    if (!DownloadFlatFiles)
+                    if (dirIndex == -1)
                     {
-                        int dirIndex = blob.LastIndexOf("/");
-                        string blobDirectory = string.Empty;
-                        string blobFilename = string.Empty;
-
-                        if (dirIndex == -1)
-                        {
-                            blobFilename = blob;
-                        }
-                        else
-                        {
-                            blobDirectory = blob.Substring(0, dirIndex);
-                            blobFilename = blob.Substring(dirIndex + 1);
-
-                            // Trim blob name prefix (directory part) from download to blob directory
-                            if (BlobNamePrefix != null)
-                            {
-                                if (BlobNamePrefix.Length > dirIndex)
-                                {
-                                    BlobNamePrefix = BlobNamePrefix.Substring(0, dirIndex);
-                                }
-                                blobDirectory = blobDirectory.Substring(BlobNamePrefix.Length);
-                            }
-                        }
-                        string downloadBlobDirectory = Path.Combine(DownloadDirectory, blobDirectory);
-                        if (!Directory.Exists(downloadBlobDirectory))
-                        {
-                            Directory.CreateDirectory(downloadBlobDirectory);
-                        }
-                        filename = Path.Combine(downloadBlobDirectory, blobFilename);
+                        blobFilename = blob;
                     }
-
-                    var createRequest = AzureHelper.RequestMessage("GET", urlGetBlob, AccountName, AccountKey);
-
-                    using (HttpResponseMessage response = await AzureHelper.RequestWithRetry(Log, client, createRequest))
+                    else
                     {
-                        if (response.IsSuccessStatusCode)
-                        {
-                            // Blobs can be files but have the name of a directory.  We'll skip those and log something weird happened.
-                            if (!string.IsNullOrEmpty(Path.GetFileName(filename)))
-                            {
-                                Stream responseStream = await response.Content.ReadAsStreamAsync();
+                        blobDirectory = blob.Substring(0, dirIndex);
+                        blobFilename = blob.Substring(dirIndex + 1);
 
-                                using (FileStream sourceStream = File.Open(filename, FileMode.Create))
-                                {
-                                    responseStream.CopyTo(sourceStream);
-                                }
-                            }
-                            else
-                            {
-                                Log.LogWarning($"Unable to download blob '{blob}' as it has a directory-like name.  This may cause problems if it was needed.");
-                            }
-                        }
-                        else
+                        // Trim blob name prefix (directory part) from download to blob directory
+                        if (BlobNamePrefix != null)
                         {
-                            Log.LogError("Failed to retrieve blob {0}, the status code was {1}", blob, response.StatusCode);
+                            if (BlobNamePrefix.Length > dirIndex)
+                            {
+                                BlobNamePrefix = BlobNamePrefix.Substring(0, dirIndex);
+                            }
+                            blobDirectory = blobDirectory.Substring(BlobNamePrefix.Length);
                         }
+                    }
+                    string downloadBlobDirectory = Path.Combine(DownloadDirectory, blobDirectory);
+                    if (!Directory.Exists(downloadBlobDirectory))
+                    {
+                        Directory.CreateDirectory(downloadBlobDirectory);
+                    }
+                    filename = Path.Combine(downloadBlobDirectory, blobFilename);
+                }
+
+                using (HttpResponseMessage response = await AzureHelper.DownloadBlobAsync(
+                    Log,
+                    AccountName,
+                    AccountKey,
+                    ContainerName,
+                    blob))
+                {
+                    // Blobs can be files but have the name of a directory.  We'll skip those and log something weird happened.
+                    if (!string.IsNullOrEmpty(Path.GetFileName(filename)))
+                    {
+                        Stream responseStream = await response.Content.ReadAsStreamAsync();
+
+                        using (FileStream sourceStream = File.Open(filename, FileMode.Create))
+                        {
+                            responseStream.CopyTo(sourceStream);
+                        }
+                    }
+                    else
+                    {
+                        Log.LogWarning($"Unable to download blob '{blob}' as it has a directory-like name.  This may cause problems if it was needed.");
                     }
                 }
             }

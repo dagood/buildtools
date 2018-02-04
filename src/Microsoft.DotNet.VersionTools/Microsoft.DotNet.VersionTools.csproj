@@ -23,8 +23,10 @@
     <Compile Include="..\common\ExponentialRetry.cs">
       <Link>Util\ExponentialRetry.cs</Link>
     </Compile>
+    <Compile Include="..\common\HttpFailureResponseException.cs">
+      <Link>Util\HttpFailureResponseException.cs</Link>
+    </Compile>
     <Compile Include="Automation\DependencyUpdateResults.cs" />
-    <Compile Include="Automation\GitHubApi\HttpFailureResponseException.cs" />
     <Compile Include="Automation\GitHubApi\IGitHubClient.cs" />
     <Compile Include="Automation\GitHubApi\NotFastForwardUpdateException.cs" />
     <Compile Include="Automation\LocalVersionsRepoUpdater.cs" />
