@@ -226,8 +226,8 @@
     <SkipTests>true</SkipTests>
   </PropertyGroup>
 
-  <Import Project="$(RoslynPropsFile)"
-          Condition="'$(UseRoslynCompiler)'=='true' and Exists('$(RoslynPropsFile)')" />
+  <Import Project="$(RoslynPropsFile)" Condition="'$(RunningOnUnix)'!='true' and Exists('$(RoslynPropsFile)') and '$(UseRoslynCompilers)'!='false' and '$(RoslynIncompatibleMsbuildVersion)' != 'true'" />
+  <Import Project="$(RoslynPropsFile)" Condition="'$(RunningOnUnix)'=='true' and Exists('$(RoslynPropsFile)') and '$(RoslynIncompatibleMsbuildVersion)' != 'true'" />
 
   <!-- Building the build.proj should restore successfully, so ignore in that case -->
   <Target Name="CheckRoslyn" Condition="'$(UseRoslynCompiler)'=='true' and '$(MSBuildProjectFile)'!='build.proj'">
