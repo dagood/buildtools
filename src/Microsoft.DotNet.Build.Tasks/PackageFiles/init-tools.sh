@@ -17,7 +17,29 @@ __MICROBUILD_VERSION=0.2.0
 __PORTABLETARGETS_VERSION=0.1.1-dev
 __ROSLYNCOMPILER_VERSION=2.6.0-beta3-62316-02
 
-__PORTABLETARGETS_PROJECT_CONTENT="
+# Determine if the CLI supports MSBuild projects. This controls whether csproj files are used for initialization and package restore.
+__CLI_VERSION=`$__DOTNET_CMD --version`
+# Check the first character in the version string. Version 2 and above supports MSBuild.
+__CLI_VERSION=${__CLI_VERSION:0:1}
+if [ "$__CLI_VERSION" -ge "2" ]; then
+  BUILDTOOLS_USE_CSPROJ=true
+fi
+
+if [ -z "${__BUILDTOOLS_USE_CSPROJ:-}" ]; then
+    __PORTABLETARGETS_PROJECT_CONTENT="
+{
+  \"dependencies\":
+  {
+    \"MicroBuild.Core\": \"${__MICROBUILD_VERSION}\",
+    \"Microsoft.Portable.Targets\": \"${__PORTABLETARGETS_VERSION}\"
+  },
+  \"frameworks\": {\"netcoreapp1.0\": {},\"net46\": {}
+  }
+}"
+    __PROJECT_EXTENSION=json
+    __PUBLISH_TFM=netcoreapp1.0
+else
+    __PORTABLETARGETS_PROJECT_CONTENT="
 <Project Sdk=\"Microsoft.NET.Sdk\">
   <PropertyGroup>
     <TargetFrameworks>netcoreapp1.0;net46</TargetFrameworks>
@@ -29,7 +51,9 @@ __PORTABLETARGETS_PROJECT_CONTENT="
     <PackageReference Include=\"Microsoft.NETCore.Compilers\" Version=\"$__ROSLYNCOMPILER_VERSION\" />
   </ItemGroup>
 </Project>"
-__PUBLISH_TFM=netcoreapp2.0
+    __PROJECT_EXTENSION=csproj
+    __PUBLISH_TFM=netcoreapp2.0
+fi
 
 __INIT_TOOLS_RESTORE_ARGS="--source https://dotnet.myget.org/F/dotnet-buildtools/api/v3/index.json --source https://api.nuget.org/v3/index.json ${__INIT_TOOLS_RESTORE_ARGS:-}"
 __TOOLRUNTIME_RESTORE_ARGS="--source https://dotnet.myget.org/F/dotnet-core/api/v3/index.json ${__INIT_TOOLS_RESTORE_ARGS}"
@@ -55,7 +79,7 @@ fi
 
 cp -R $__TOOLS_DIR/* $__TOOLRUNTIME_DIR
 
-__TOOLRUNTIME_PROJECT=$__TOOLS_DIR/tool-runtime/project.csproj
+__TOOLRUNTIME_PROJECT=$__TOOLS_DIR/tool-runtime/project.$__PROJECT_EXTENSION
 
 echo "Running: $__DOTNET_CMD restore \"${__TOOLRUNTIME_PROJECT}\" $__TOOLRUNTIME_RESTORE_ARGS"
 $__DOTNET_CMD restore "${__TOOLRUNTIME_PROJECT}" $__TOOLRUNTIME_RESTORE_ARGS
@@ -65,7 +89,7 @@ $__DOTNET_CMD publish "${__TOOLRUNTIME_PROJECT}" -f ${__PUBLISH_TFM} -o $__TOOLR
 
 # Copy Portable Targets Over to ToolRuntime
 if [ ! -d "${__PACKAGES_DIR}/generated" ]; then mkdir "${__PACKAGES_DIR}/generated"; fi
-__PORTABLETARGETS_PROJECT=${__PACKAGES_DIR}/generated/project.csproj
+__PORTABLETARGETS_PROJECT=${__PACKAGES_DIR}/generated/project.$__PROJECT_EXTENSION
 
 echo $__PORTABLETARGETS_PROJECT_CONTENT > "${__PORTABLETARGETS_PROJECT}"
 
