@@ -140,6 +140,7 @@ foreach ($tool in $tools)
 
     if (Test-Path (Join-Path $pkgVerPath "lib\init-tools.cmd"))
     {
+        & cmd.exe /c set | Write-Output
         cmd.exe /c (Join-Path $pkgVerPath "lib\init-tools.cmd") $RepositoryRoot $dotNetExe $ToolsLocalPath | Out-File (Join-Path $RepositoryRoot "Init-$name.log")
     }
 }

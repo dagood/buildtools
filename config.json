@@ -28,7 +28,7 @@
       "description": "MsBuild logging options.",
       "valueType": "passThrough",
       "values": [],
-      "defaultValue": "/flp:v=normal"
+      "defaultValue": "/flp:v=diag"
     },
     "Project": {
       "description": "Project where the commands are going to be applied.",
@@ -171,7 +171,7 @@
     "msbuild": {
       "osSpecific":{
         "windows": {
-          "defaultParameters": "/nologo /verbosity:minimal /clp:Summary /maxcpucount /nodeReuse:false /l:BinClashLogger,Tools\\net46\\Microsoft.DotNet.Build.Tasks.dll;LogFile=binclash.log",
+          "defaultParameters": "/nologo /verbosity:minimal /clp:Summary /nodeReuse:false /l:BinClashLogger,Tools\\net46\\Microsoft.DotNet.Build.Tasks.dll;LogFile=binclash.log",
           "path": "Tools/msbuild.cmd"
         },
         "unix":{
