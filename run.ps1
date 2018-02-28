@@ -14,6 +14,9 @@ if ((Test-Path $bootStrapperPath) -eq 0)
     Invoke-WebRequest "https://raw.githubusercontent.com/dotnet/buildtools/master/bootstrap/bootstrap.ps1" -OutFile $bootStrapperPath
 }
 
+# Use project.json generation for old CLI version
+${env:BUILDTOOLS_USE_PROJECT_JSON} = 'true'
+
 # now execute it
 & $bootStrapperPath (Get-Location) $toolsLocalPath -DotNetInstallBranch "rel/1.0.0-preview2.1" | Out-File (Join-Path (Get-Location) "bootstrap.log")
 if ($LastExitCode -ne 0)

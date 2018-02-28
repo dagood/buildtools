@@ -2,6 +2,9 @@
 
 __scriptpath=$(cd "$(dirname "$0")"; pwd -P)
 
+# Use project.json generation for old CLI version
+export __BUILDTOOLS_USE_PROJECT_JSON=true
+
 # Disable telemetry, first time experience, and global sdk look for the CLI
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1

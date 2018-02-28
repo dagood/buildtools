@@ -18,17 +18,7 @@ if [%NATIVE_TOOLS_RID%]==[] (
   set NATIVE_TOOLS_RID=win-x64
 )
 
-:: Determine if the CLI supports MSBuild projects. This controls whether csproj files are used for initialization and package restore.
-set CLI_VERSION=
-for /f "delims=" %%a in ('%DOTNET_CMD% --version') do @set CLI_VERSION=%%a
-:: Check the first character in the version string. Version 2 and above supports MSBuild.
-set CLI_VERSION=%CLI_VERSION:~0,1%
-if %CLI_VERSION% geq 2 (
-  set BUILDTOOLS_USE_CSPROJ=true
-  echo "Detected a 2.0-capable CLI."
-)
-
-if [%BUILDTOOLS_USE_CSPROJ%]==[] (
+if [%BUILDTOOLS_USE_PROJECT_JSON%]==[true] (
   set MSBUILD_PROJECT_CONTENT= ^
 { ^
   "dependencies": ^
