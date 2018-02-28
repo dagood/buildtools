@@ -10,7 +10,7 @@
         "Microsoft.DotNet.PlatformAbstractions": "1.2.0-beta-001090",
         "Microsoft.Net.Compilers.netcore": "2.0.0-rc",
         "Microsoft.Net.Compilers.Targets.NetCore": "0.1.5-dev",
-        "Microsoft.Cci": "4.0.0-rc4-24217-00",
+        "Microsoft.Cci": "4.0.0-rc3-24214-00",
         "Microsoft.Composition": "1.0.30",
         "System.Diagnostics.Process": "4.1.0",
         "System.Diagnostics.TextWriterTraceListener": "4.0.0",
@@ -30,11 +30,11 @@
     },
     "net46": {
       "dependencies": {
-        "Microsoft.Cci": "4.0.0-rc4-24217-00",
+        "Microsoft.Cci": "4.0.0-rc3-24214-00",
         "Microsoft.NETCore.Windows.ApiSets": "1.0.1",
         "System.IO.FileSystem": "4.0.1",
         "System.Diagnostics.FileVersionInfo": "4.0.0",
-        "System.Diagnostics.TraceSource": "4.0.0",
+        "System.Diagnostics.TraceSource": "4.0.0"
       }
     }
   },
